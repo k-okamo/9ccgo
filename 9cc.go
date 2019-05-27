@@ -30,18 +30,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	for i := range reg_map {
+		reg_map[i] = -1
+	}
+
+	// Tokenize and parse.
 	tokenize(os.Args[1])
 	node := expr()
 
-	// Print the prologue.
+	gen_ir(node)
+	alloc_regs()
+
 	fmt.Printf(".intel_syntax noprefix\n")
 	fmt.Printf(".global main\n")
 	fmt.Printf("main:\n")
-
-	// Generate code while descending the parse tree.
-	reg := gen(node)
-	fmt.Printf("\tmov rax, %s\n", reg)
-	fmt.Printf("\tret\n")
+	gen_X86()
 }
 
 func tokenize(s string) {
@@ -135,35 +138,140 @@ func expr() *Node {
 	return lhs
 }
 
-// Code generator
+// Intermediate reperentation
+
+const (
+	IR_IMM = iota
+	IR_MOV
+	IR_RETURN
+	IR_KILL
+	IR_NOP
+)
+
+type IR struct {
+	op  int
+	lhs int
+	rhs int
+}
+
+func new_ir(op, lhs, rhs int) *IR {
+	ir := new(IR)
+	ir.op = op
+	ir.lhs = lhs
+	ir.rhs = rhs
+	return ir
+}
+
+var ins = make([]*IR, 100)
+var inp int
+var regno int
+
+func gen_ir_sub(node *Node) int {
+
+	if node.ty == ND_NUM {
+		r := regno
+		regno++
+		ins[inp] = new_ir(IR_IMM, r, node.val)
+		inp++
+		return r
+	}
+	// asset(node->ty == '+' || node-> == '-')
+
+	lhs, rhs := gen_ir_sub(node.lhs), gen_ir_sub(node.rhs)
+
+	ins[inp] = new_ir(node.ty, lhs, rhs)
+	inp++
+	ins[inp] = new_ir(IR_KILL, rhs, 0)
+	inp++
+	return lhs
+}
+
+func gen_ir(node *Node) {
+	r := gen_ir_sub(node)
+	ins[inp] = new_ir(IR_RETURN, r, 0)
+	inp++
+}
+
+// Register allocator
 
 var regs = []string{"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15", ""}
-var cur = 0
+var used [8]bool
+var reg_map [1000]int
 
-func gen(node *Node) string {
-	if node.ty == ND_NUM {
-		reg := regs[cur]
-		if regs[cur] == "" {
-			error("register exhausted")
+func alloc(ir_reg int) int {
+	if reg_map[ir_reg] != -1 {
+		r := reg_map[ir_reg]
+		//de
+		if !used[r] {
+			fmt.Printf("used[%d] is not true.\n", r)
 		}
-		cur++
-		fmt.Printf("\tmov %s, %d\n", reg, node.val)
-		return reg
+		//de
+		//assert(used[r])
+		return r
 	}
 
-	dst, src := gen(node.lhs), gen(node.rhs)
-
-	switch node.ty {
-	case '+':
-		fmt.Printf("\tadd %s, %s\n", dst, src)
-		return dst
-	case '-':
-		fmt.Printf("\tsub %s, %s\n", dst, src)
-		return dst
-	default:
-		error("unknown operator")
+	for i := 0; i < len(regs); i++ {
+		if used[i] == true {
+			continue
+		}
+		used[i] = true
+		reg_map[ir_reg] = i
+		return i
 	}
-	return ""
+	error("register exhausted")
+	return -1
+}
+
+func kill(r int) {
+	//asset(used[r])
+	used[r] = false
+}
+
+func alloc_regs() {
+	for i := 0; i < inp; i++ {
+		ir := ins[i]
+
+		switch ir.op {
+		case IR_IMM:
+			ir.lhs = alloc(ir.lhs)
+		case IR_MOV, '+', '-':
+			ir.lhs = alloc(ir.lhs)
+			ir.rhs = alloc(ir.rhs)
+		case IR_RETURN:
+			kill(reg_map[ir.lhs])
+		case IR_KILL:
+			kill(reg_map[ir.lhs])
+			ir.op = IR_NOP
+		default:
+			//asset(0&& "unknown operator")
+		}
+	}
+}
+
+// Code generator
+
+func gen_X86() {
+	for i := 0; i < inp; i++ {
+		ir := ins[i]
+
+		switch ir.op {
+		case IR_IMM:
+			fmt.Printf("\tmov %s, %d\n", regs[ir.lhs], ir.rhs)
+		case IR_MOV:
+			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_RETURN:
+			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
+			fmt.Printf("\tret\n")
+		case '+':
+			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case '-':
+			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_NOP:
+			break
+		default:
+			//asset(0 && "unknown operator")
+		}
+	}
 }
 
 // An error reporting function
