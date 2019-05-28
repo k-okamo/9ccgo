@@ -40,20 +40,31 @@ func number() *Node {
 	return new_node_num(t.val)
 }
 
-func expr() *Node {
+func mul() *Node {
 	lhs := number()
 	for {
-		t := (tokens.data[pos]).(*Token)
+		t := tokens.data[pos].(*Token)
 		op := t.ty
-		if op != '+' && op != '-' {
-			break
+		if op != '*' && op != '/' {
+			return lhs
 		}
 		pos++
 		lhs = new_node(op, lhs, number())
 	}
-	t := (tokens.data[pos]).(*Token)
-	if t.ty != TK_EOF {
-		error("stray token: %s", t.input)
+	return lhs
+}
+
+func expr() *Node {
+
+	lhs := mul()
+	for {
+		t := tokens.data[pos].(*Token)
+		op := t.ty
+		if op != '+' && op != '-' {
+			return lhs
+		}
+		pos++
+		lhs = new_node(op, lhs, mul())
 	}
 	return lhs
 }
@@ -61,5 +72,11 @@ func expr() *Node {
 func parse(v *Vector) *Node {
 	tokens = v
 	pos = 0
-	return expr()
+
+	node := expr()
+	t := tokens.data[pos].(*Token)
+	if t.ty != TK_EOF {
+		error("stray token: %s", t.input)
+	}
+	return node
 }

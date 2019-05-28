@@ -1,4 +1,4 @@
-.SILENT: clean test
+.SILENT: clean test 9ccgo
 SRCS=$(wildcard *.go)
 
 9ccgo: clean

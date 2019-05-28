@@ -38,7 +38,7 @@ func gen_ir_sub(v *Vector, node *Node) int {
 		vec_push(v, new_ir(IR_IMM, r, node.val))
 		return r
 	}
-	// asset(node->ty == '+' || node-> == '-')
+	// assert(strche("+-*", node.ty))
 
 	lhs, rhs := gen_ir_sub(v, node.lhs), gen_ir_sub(v, node.rhs)
 

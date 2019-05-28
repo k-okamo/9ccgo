@@ -54,3 +54,12 @@ func strtol(s string, b int) (int, string) {
 	return int(n), s[j:]
 
 }
+
+func strchr(s string, c rune) string {
+	for i, r := range s {
+		if c == r {
+			return s[i:]
+		}
+	}
+	return ""
+}

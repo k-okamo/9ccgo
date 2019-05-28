@@ -26,7 +26,7 @@ func alloc(ir_reg int) int {
 }
 
 func kill(r int) {
-	//asset(used[r])
+	//assert(used[r])
 	used[r] = false
 }
 
@@ -43,7 +43,7 @@ func alloc_regs(irv *Vector) {
 		switch ir.op {
 		case IR_IMM:
 			ir.lhs = alloc(ir.lhs)
-		case IR_MOV, '+', '-':
+		case IR_MOV, '+', '-', '*':
 			ir.lhs = alloc(ir.lhs)
 			ir.rhs = alloc(ir.rhs)
 		case IR_RETURN:
@@ -52,7 +52,7 @@ func alloc_regs(irv *Vector) {
 			kill(reg_map[ir.lhs])
 			ir.op = IR_NOP
 		default:
-			//asset(0&& "unknown operator")
+			//assert(0&& "unknown operator")
 		}
 	}
 }

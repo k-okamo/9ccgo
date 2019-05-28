@@ -20,10 +20,14 @@ func gen_X86(irv *Vector) {
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '-':
 			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case '*':
+			fmt.Printf("\tmov rax, %s\n", regs[ir.rhs])
+			fmt.Printf("\tmul %s\n", regs[ir.lhs])
+			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
 		case IR_NOP:
 			break
 		default:
-			//asset(0 && "unknown operator")
+			//assert(0 && "unknown operator")
 		}
 	}
 }
