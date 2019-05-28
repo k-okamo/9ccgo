@@ -45,7 +45,7 @@ func tokenize(s string) *Vector {
 
 		// + or -
 		//if c == '+' || c == '-' || c == '*' {
-		if strchr("+-*", c) != "" {
+		if strchr("+-*/", c) != "" {
 			add_token(v, int(c), string(c))
 			i++
 			s = s[1:]

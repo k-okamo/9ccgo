@@ -8,5 +8,5 @@ test: 9ccgo
 	./test.sh
 
 clean:
-	rm -f 9ccgo *.o *~ tmp*
+	rm -f 9ccgo *.o *~ tmp* a.out
 
