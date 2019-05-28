@@ -1,7 +1,9 @@
 .SILENT: clean test
-9ccgo: clean
-	go build -o 9ccgo 9cc.go
+SRCS=$(wildcard *.go)
 
+9ccgo: clean
+	go build -o 9ccgo $(SRCS)
+	
 test: 9ccgo
 	./test.sh
 
