@@ -7,6 +7,30 @@ import (
 	"unicode"
 )
 
+// Vector
+type Vector struct {
+	data     []interface{}
+	capacity int
+	len      int
+}
+
+func new_vec() *Vector {
+	v := new(Vector)
+	v.data = make([]interface{}, 16)
+	v.capacity = 16
+	v.len = 0
+	return v
+}
+
+func vec_push(v *Vector, elem interface{}) {
+	if v.len == v.capacity {
+		v.data = append(v.data, make([]interface{}, v.capacity)...)
+		v.capacity *= 2
+	}
+	v.data[v.len] = elem
+	v.len++
+}
+
 // Tokenizer
 
 const (
@@ -22,32 +46,18 @@ type Token struct {
 }
 
 // Tokenized input is stored to this array.
-var tokens = make([]Token, 100)
 
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: 9ccgo <code>\n")
-		os.Exit(1)
-	}
-
-	for i := range reg_map {
-		reg_map[i] = -1
-	}
-
-	// Tokenize and parse.
-	tokenize(os.Args[1])
-	node := expr()
-
-	gen_ir(node)
-	alloc_regs()
-
-	fmt.Printf(".intel_syntax noprefix\n")
-	fmt.Printf(".global main\n")
-	fmt.Printf("main:\n")
-	gen_X86()
+func add_token(v *Vector, ty int, input string) *Token {
+	t := new(Token)
+	t.ty = ty
+	t.input = input
+	vec_push(v, t)
+	return t
 }
 
-func tokenize(s string) {
+func tokenize(s string) *Vector {
+
+	v := new_vec()
 	i := 0
 	for len(s) != 0 {
 		c := []rune(s)[0]
@@ -58,8 +68,7 @@ func tokenize(s string) {
 
 		// + or -
 		if c == '+' || c == '-' {
-			tokens[i].ty = int(c)
-			tokens[i].input = string(c)
+			add_token(v, int(c), string(c))
 			i++
 			s = s[1:]
 			continue
@@ -67,11 +76,10 @@ func tokenize(s string) {
 
 		// Number
 		if unicode.IsDigit(c) {
-			tokens[i].ty = TK_NUM
-			tokens[i].input = string(c)
-			var val int
+			t := add_token(v, TK_NUM, string(c))
+			val := 0
 			val, s = strtol(s, 10)
-			tokens[i].val = val
+			t.val = val
 			i++
 			continue
 		}
@@ -80,7 +88,8 @@ func tokenize(s string) {
 		os.Exit(1)
 	}
 
-	tokens[i].ty = TK_EOF
+	add_token(v, TK_EOF, s)
+	return v
 }
 
 // Recursive-descendent parser
@@ -96,6 +105,8 @@ type Node struct {
 	rhs *Node // right-hand side
 	val int   // Number literal
 }
+
+var tokens *Vector
 
 func new_node(op int, lhs, rhs *Node) *Node {
 	node := new(Node)
@@ -113,27 +124,29 @@ func new_node_num(val int) *Node {
 }
 
 func number() *Node {
-	if tokens[pos].ty == TK_NUM {
-		node := new_node_num(tokens[pos].val)
-		pos++
-		return node
+	t := (tokens.data[pos]).(*Token)
+	if t.ty != TK_NUM {
+		error("number expected, but got %s", t.input)
+		return nil
 	}
-	error("number expected, but got %s", tokens[pos].input)
-	return nil
+	pos++
+	return new_node_num(t.val)
 }
 
 func expr() *Node {
 	lhs := number()
 	for {
-		op := tokens[pos].ty
+		t := (tokens.data[pos]).(*Token)
+		op := t.ty
 		if op != '+' && op != '-' {
 			break
 		}
 		pos++
 		lhs = new_node(op, lhs, number())
 	}
-	if tokens[pos].ty != TK_EOF {
-		error("stray token: %s", tokens[pos].input)
+	t := (tokens.data[pos]).(*Token)
+	if t.ty != TK_EOF {
+		error("stray token: %s", t.input)
 	}
 	return lhs
 }
@@ -162,50 +175,41 @@ func new_ir(op, lhs, rhs int) *IR {
 	return ir
 }
 
-var ins = make([]*IR, 100)
-var inp int
 var regno int
 
-func gen_ir_sub(node *Node) int {
+func gen_ir_sub(v *Vector, node *Node) int {
 
 	if node.ty == ND_NUM {
 		r := regno
 		regno++
-		ins[inp] = new_ir(IR_IMM, r, node.val)
-		inp++
+		vec_push(v, new_ir(IR_IMM, r, node.val))
 		return r
 	}
 	// asset(node->ty == '+' || node-> == '-')
 
-	lhs, rhs := gen_ir_sub(node.lhs), gen_ir_sub(node.rhs)
+	lhs, rhs := gen_ir_sub(v, node.lhs), gen_ir_sub(v, node.rhs)
 
-	ins[inp] = new_ir(node.ty, lhs, rhs)
-	inp++
-	ins[inp] = new_ir(IR_KILL, rhs, 0)
-	inp++
+	vec_push(v, new_ir(node.ty, lhs, rhs))
+	vec_push(v, new_ir(IR_KILL, rhs, 0))
 	return lhs
 }
 
-func gen_ir(node *Node) {
-	r := gen_ir_sub(node)
-	ins[inp] = new_ir(IR_RETURN, r, 0)
-	inp++
+func gen_ir(node *Node) *Vector {
+	v := new_vec()
+	r := gen_ir_sub(v, node)
+	vec_push(v, new_ir(IR_RETURN, r, 0))
+	return v
 }
 
 // Register allocator
 
-var regs = []string{"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15", ""}
+var regs = []string{"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"}
 var used [8]bool
-var reg_map [1000]int
+var reg_map []int
 
 func alloc(ir_reg int) int {
 	if reg_map[ir_reg] != -1 {
 		r := reg_map[ir_reg]
-		//de
-		if !used[r] {
-			fmt.Printf("used[%d] is not true.\n", r)
-		}
-		//de
 		//assert(used[r])
 		return r
 	}
@@ -227,9 +231,15 @@ func kill(r int) {
 	used[r] = false
 }
 
-func alloc_regs() {
-	for i := 0; i < inp; i++ {
-		ir := ins[i]
+func alloc_regs(irv *Vector) {
+
+	reg_map = make([]int, irv.len)
+	for i := range reg_map {
+		reg_map[i] = -1
+	}
+
+	for i := 0; i < irv.len; i++ {
+		ir := irv.data[i].(*IR)
 
 		switch ir.op {
 		case IR_IMM:
@@ -250,9 +260,9 @@ func alloc_regs() {
 
 // Code generator
 
-func gen_X86() {
-	for i := 0; i < inp; i++ {
-		ir := ins[i]
+func gen_X86(irv *Vector) {
+	for i := 0; i < irv.len; i++ {
+		ir := irv.data[i].(*IR)
 
 		switch ir.op {
 		case IR_IMM:
@@ -296,4 +306,87 @@ func strtol(s string, b int) (int, string) {
 	n, _ := strconv.ParseInt(s[:j], b, 32)
 	return int(n), s[j:]
 
+}
+
+// [Debug] tokens print
+func print_tokens(tokens *Vector) {
+	if !debug {
+		return
+	}
+	fmt.Println("-- tokens info --")
+	for i := 0; i < tokens.len; i++ {
+		t := tokens.data[i].(*Token)
+		ty := ""
+		switch t.ty {
+		case TK_NUM:
+			ty = "TK_NUM"
+		case TK_EOF:
+			ty = "TK_EOF"
+		default:
+			ty = "      "
+		}
+		fmt.Printf("[%02d] ty: %s, val: %d, input: %s\n", i, ty, t.val, t.input)
+	}
+	fmt.Println("")
+}
+
+// [Debug] intermediate reprensations
+func print_irs(irs *Vector) {
+	if !debug {
+		return
+	}
+	fmt.Println("-- intermediate reprensetations --")
+	for i := 0; i < irs.len; i++ {
+		ir := irs.data[i].(*IR)
+		op := ""
+		switch ir.op {
+		case IR_IMM:
+			op = "IR_IMM   "
+		case IR_MOV:
+			op = "IR_MOV   "
+		case IR_RETURN:
+			op = "IR_RETURN"
+		case IR_KILL:
+			op = "IR_KILL  "
+		case IR_NOP:
+			op = "IR_NOP   "
+		case '+':
+			op = "+        "
+		case '-':
+			op = "-        "
+		default:
+			op = "         "
+		}
+		fmt.Printf("[%02d] op: %s, lhs: %d, rhs: %d\n", i, op, ir.lhs, ir.rhs)
+	}
+	fmt.Println("")
+}
+
+var debug bool
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintf(os.Stderr, "Usage: 9ccgo <code>\n")
+		os.Exit(1)
+	}
+	for i := range reg_map {
+		reg_map[i] = -1
+	}
+
+	// debug flag
+	//debug = true
+
+	// Tokenize and parse.
+	tokens = tokenize(os.Args[1])
+	print_tokens(tokens)
+	node := expr()
+
+	irv := gen_ir(node)
+	print_irs(irv)
+	alloc_regs(irv)
+
+	fmt.Printf(".intel_syntax noprefix\n")
+	fmt.Printf(".global main\n")
+	fmt.Printf("main:\n")
+	gen_X86(irv)
 }
