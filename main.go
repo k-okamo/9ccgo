@@ -16,6 +16,10 @@ func main() {
 	}
 
 	//debug = true
+	if os.Args[1] == "-test" {
+		util_test()
+		os.Exit(0)
+	}
 
 	// Tokenize and parse.
 	tokens = tokenize(os.Args[1])
