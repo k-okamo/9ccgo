@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"unicode"
 )
 
 var (
-	tokens *Vector
+	tokens   *Vector
+	keywords *Map
 )
 
 const (
-	TK_NUM = iota + 256 // Number literal
-	TK_EOF              // End marker
+	TK_NUM    = iota + 256 // Number literal
+	TK_RETURN              // "return"
+	TK_EOF                 // End marker
 )
 
 // Token type
@@ -32,7 +33,7 @@ func add_token(v *Vector, ty int, input string) *Token {
 	return t
 }
 
-func tokenize(s string) *Vector {
+func scan(s string) *Vector {
 
 	v := new_vec()
 	i := 0
@@ -45,10 +46,36 @@ func tokenize(s string) *Vector {
 
 		// + or -
 		//if c == '+' || c == '-' || c == '*' {
-		if strchr("+-*/", c) != "" {
+		if strchr("+-*/;", c) != "" {
 			add_token(v, int(c), string(c))
 			i++
 			s = s[1:]
+			continue
+		}
+
+		// Keyword
+		if IsAlpha(c) || c == '_' {
+			length := 1
+		LABEL:
+			for {
+				if len(s[length:]) == 0 {
+					break LABEL
+				}
+				c2 := []rune(s)[length]
+				if !IsAlpha(c2) && !unicode.IsDigit(c2) && c2 != '_' {
+					break LABEL
+				}
+				length++
+			}
+			name := strndup(s, length)
+			ty := map_get(keywords, name).(int)
+			if ty == 0 {
+				error("unknown identifier: %s", name)
+			}
+
+			add_token(v, ty, s)
+			i++
+			s = s[length:]
 			continue
 		}
 
@@ -62,12 +89,18 @@ func tokenize(s string) *Vector {
 			continue
 		}
 
-		fmt.Fprintf(os.Stderr, "cannot tokenize: %s\n", string(c))
-		os.Exit(1)
+		error("cannot tokenize: %s\n", string(c))
 	}
 
 	add_token(v, TK_EOF, s)
 	return v
+}
+
+func tokenize(s string) *Vector {
+	keywords = new_map()
+	map_put(keywords, "return", TK_RETURN)
+
+	return scan(s)
 }
 
 // [Debug] tokens print
@@ -81,11 +114,15 @@ func print_tokens(tokens *Vector) {
 		ty := ""
 		switch t.ty {
 		case TK_NUM:
-			ty = "TK_NUM"
+			ty = "TK_NUM   "
+		case TK_RETURN:
+			ty = "TK_RETURN"
 		case TK_EOF:
-			ty = "TK_EOF"
+			ty = "TK_EOF   "
+		case ';':
+			ty = ";        "
 		default:
-			ty = "      "
+			ty = "         "
 		}
 		fmt.Printf("[%02d] ty: %s, val: %d, input: %s\n", i, ty, t.val, t.input)
 	}

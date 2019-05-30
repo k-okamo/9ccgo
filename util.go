@@ -92,8 +92,19 @@ func strchr(s string, c rune) string {
 	return ""
 }
 
+func strndup(s string, size int) string {
+	if len(s) <= size {
+		return s
+	}
+	return s[:size]
+}
+
+func IsAlpha(c rune) bool {
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+}
+
 // Testing
-func expect(file string, line, expected, actual int) {
+func expect_test(file string, line, expected, actual int) {
 	if expected == actual {
 		return
 	}
@@ -104,31 +115,31 @@ func expect(file string, line, expected, actual int) {
 func vec_test() {
 	vec := new_vec()
 	_, file, line, _ := runtime.Caller(0)
-	expect(file, line+1, 0, vec.len)
+	expect_test(file, line+1, 0, vec.len)
 
 	for i := 0; i < 100; i++ {
 		vec_push(vec, i)
 	}
 
-	expect(file, line+7, 100, vec.len)
-	expect(file, line+8, 0, vec.data[0].(int))
-	expect(file, line+9, 50, vec.data[50].(int))
-	expect(file, line+10, 99, vec.data[99].(int))
+	expect_test(file, line+7, 100, vec.len)
+	expect_test(file, line+8, 0, vec.data[0].(int))
+	expect_test(file, line+9, 50, vec.data[50].(int))
+	expect_test(file, line+10, 99, vec.data[99].(int))
 }
 
 func map_test() {
 	m := new_map()
 	_, file, line, _ := runtime.Caller(0)
-	expect(file, line+1, 0, map_get(m, "foo").(int))
+	expect_test(file, line+1, 0, map_get(m, "foo").(int))
 
 	map_put(m, "foo", 2)
-	expect(file, line+4, 2, map_get(m, "foo").(int))
+	expect_test(file, line+4, 2, map_get(m, "foo").(int))
 
 	map_put(m, "bar", 4)
-	expect(file, line+7, 4, map_get(m, "bar").(int))
+	expect_test(file, line+7, 4, map_get(m, "bar").(int))
 
 	map_put(m, "foo", 6)
-	expect(file, line+10, 6, map_get(m, "foo").(int))
+	expect_test(file, line+10, 6, map_get(m, "foo").(int))
 }
 
 func util_test() {

@@ -5,14 +5,27 @@ var (
 )
 
 const (
-	ND_NUM = iota + 256 // Number literal
+	ND_NUM       = iota + 256 // Number literal
+	ND_RETURN                 // Return statement
+	ND_COMP_STMT              // Compound statement
+	ND_EXPR_STMT              // Expressions statement
 )
 
 type Node struct {
-	ty  int   // Node type
-	lhs *Node // left-hand side
-	rhs *Node // right-hand side
-	val int   // Number literal
+	ty    int     // Node type
+	lhs   *Node   // left-hand side
+	rhs   *Node   // right-hand side
+	val   int     // Number literal
+	expr  *Node   // "return" or expression stmt
+	stmts *Vector // Compound statement
+}
+
+func expect(ty int) {
+	t := tokens.data[pos].(*Token)
+	if t.ty != ty {
+		error("%c (%d) expected, but got %c (%d)", ty, ty, t.ty, t.ty)
+	}
+	pos++
 }
 
 func new_node(op int, lhs, rhs *Node) *Node {
@@ -23,21 +36,17 @@ func new_node(op int, lhs, rhs *Node) *Node {
 	return node
 }
 
-func new_node_num(val int) *Node {
-	node := new(Node)
-	node.ty = ND_NUM
-	node.val = val
-	return node
-}
-
 func number() *Node {
-	t := (tokens.data[pos]).(*Token)
+	t := tokens.data[pos].(*Token)
 	if t.ty != TK_NUM {
 		error("number expected, but got %s", t.input)
 		return nil
 	}
 	pos++
-	return new_node_num(t.val)
+	node := new(Node)
+	node.ty = ND_NUM
+	node.val = t.val
+	return node
 }
 
 func mul() *Node {
@@ -69,14 +78,35 @@ func expr() *Node {
 	return lhs
 }
 
+func stmt() *Node {
+
+	node := new(Node)
+	node.ty = ND_COMP_STMT
+	node.stmts = new_vec()
+
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty == TK_EOF {
+			return node
+		}
+
+		e := new(Node)
+		if t.ty == TK_RETURN {
+			pos++
+			e.ty = ND_RETURN
+			e.expr = expr()
+		} else {
+			e.ty = ND_EXPR_STMT
+			e.expr = expr()
+		}
+
+		vec_push(node.stmts, e)
+		expect(';')
+	}
+}
+
 func parse(v *Vector) *Node {
 	tokens = v
 	pos = 0
-
-	node := expr()
-	t := tokens.data[pos].(*Token)
-	if t.ty != TK_EOF {
-		error("stray token: %s", t.input)
-	}
-	return node
+	return stmt()
 }

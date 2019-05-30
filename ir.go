@@ -6,6 +6,7 @@ import (
 
 var (
 	regno int
+	code  *Vector
 )
 
 const (
@@ -22,36 +23,59 @@ type IR struct {
 	rhs int
 }
 
-func new_ir(op, lhs, rhs int) *IR {
+func add(op, lhs, rhs int) *IR {
 	ir := new(IR)
 	ir.op = op
 	ir.lhs = lhs
 	ir.rhs = rhs
+	vec_push(code, ir)
 	return ir
 }
 
-func gen_ir_sub(v *Vector, node *Node) int {
+func gen_expr(node *Node) int {
 
 	if node.ty == ND_NUM {
 		r := regno
 		regno++
-		vec_push(v, new_ir(IR_IMM, r, node.val))
+		add(IR_IMM, r, node.val)
 		return r
 	}
 	// assert(strche("+-*/", node.ty))
 
-	lhs, rhs := gen_ir_sub(v, node.lhs), gen_ir_sub(v, node.rhs)
+	lhs, rhs := gen_expr(node.lhs), gen_expr(node.rhs)
 
-	vec_push(v, new_ir(node.ty, lhs, rhs))
-	vec_push(v, new_ir(IR_KILL, rhs, 0))
+	add(node.ty, lhs, rhs)
+	add(IR_KILL, rhs, 0)
 	return lhs
 }
 
+func gen_stmt(node *Node) {
+	if node.ty == ND_RETURN {
+		r := gen_expr(node.expr)
+		add(IR_RETURN, r, 0)
+		add(IR_KILL, r, 0)
+		return
+	}
+	if node.ty == ND_EXPR_STMT {
+		r := gen_expr(node.expr)
+		add(IR_KILL, r, 0)
+		return
+	}
+	if node.ty == ND_COMP_STMT {
+		for i := 0; i < node.stmts.len; i++ {
+			gen_stmt((node.stmts.data[i]).(*Node))
+		}
+		return
+	}
+	error("unknown node: %d", node.ty)
+}
+
 func gen_ir(node *Node) *Vector {
-	v := new_vec()
-	r := gen_ir_sub(v, node)
-	vec_push(v, new_ir(IR_RETURN, r, 0))
-	return v
+	// assert(node.ty == ND_COMP_STMT)
+	code = new_vec()
+	gen_stmt(node)
+	return code
+
 }
 
 // [Debug] intermediate reprensations

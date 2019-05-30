@@ -23,11 +23,11 @@ func main() {
 
 	// Tokenize and parse.
 	tokens = tokenize(os.Args[1])
-	print_tokens(tokens)
+	print_tokens(tokens) // Debug
 	node := parse(tokens)
 
 	irv := gen_ir(node)
-	print_irs(irv)
+	print_irs(irv) // Debug
 	alloc_regs(irv)
 
 	fmt.Printf(".intel_syntax noprefix\n")
