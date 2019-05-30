@@ -35,6 +35,15 @@ func map_get(m *Map, key string) interface{} {
 	return 0
 }
 
+func map_exists(m *Map, key string) bool {
+	for i := 0; i < m.keys.len; i++ {
+		if m.keys.data[i] == key {
+			return true
+		}
+	}
+	return false
+}
+
 // Vector
 type Vector struct {
 	data     []interface{}
@@ -112,6 +121,14 @@ func expect_test(file string, line, expected, actual int) {
 	os.Exit(1)
 }
 
+func expect_test_bool(file string, line int, expected, actual bool) {
+	if expected == actual {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "%s:%d: %v expected, but got %v\n", file, line, expected, actual)
+	os.Exit(1)
+}
+
 func vec_test() {
 	vec := new_vec()
 	_, file, line, _ := runtime.Caller(0)
@@ -140,6 +157,9 @@ func map_test() {
 
 	map_put(m, "foo", 6)
 	expect_test(file, line+10, 6, map_get(m, "foo").(int))
+
+	expect_test_bool(file, line+12, true, map_exists(m, "foo"))
+	expect_test_bool(file, line+13, false, map_exists(m, "baz"))
 }
 
 func util_test() {
