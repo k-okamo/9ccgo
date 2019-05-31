@@ -12,6 +12,7 @@ var (
 
 const (
 	TK_NUM    = iota + 256 // Number literal
+	TK_IDENT               // Identifier
 	TK_RETURN              // "return"
 	TK_EOF                 // End marker
 )
@@ -20,10 +21,9 @@ const (
 type Token struct {
 	ty    int    // Token type
 	val   int    // Number literal
+	name  string // Identifier
 	input string // Token string (for error reporting)
 }
-
-// Tokenized input is stored to this array.
 
 func add_token(v *Vector, ty int, input string) *Token {
 	t := new(Token)
@@ -38,22 +38,22 @@ func scan(s string) *Vector {
 	v := new_vec()
 	i := 0
 	for len(s) != 0 {
+		// Skip whitespace
 		c := []rune(s)[0]
 		if unicode.IsSpace(c) {
 			s = s[1:]
 			continue
 		}
 
-		// + or -
-		//if c == '+' || c == '-' || c == '*' {
-		if strchr("+-*/;", c) != "" {
-			add_token(v, int(c), string(c))
+		// Single-letter token
+		if strchr("+-*/;=", c) != "" {
+			add_token(v, int(c), s)
 			i++
 			s = s[1:]
 			continue
 		}
 
-		// Keyword
+		// Identifier
 		if IsAlpha(c) || c == '_' {
 			length := 1
 		LABEL:
@@ -70,10 +70,11 @@ func scan(s string) *Vector {
 			name := strndup(s, length)
 			ty := map_get(keywords, name).(int)
 			if ty == 0 {
-				error("unknown identifier: %s", name)
+				ty = TK_IDENT
 			}
 
-			add_token(v, ty, s)
+			t := add_token(v, ty, s)
+			t.name = name
 			i++
 			s = s[length:]
 			continue
@@ -81,7 +82,7 @@ func scan(s string) *Vector {
 
 		// Number
 		if unicode.IsDigit(c) {
-			t := add_token(v, TK_NUM, string(c))
+			t := add_token(v, TK_NUM, s)
 			val := 0
 			val, s = strtol(s, 10)
 			t.val = val
@@ -115,6 +116,8 @@ func print_tokens(tokens *Vector) {
 		switch t.ty {
 		case TK_NUM:
 			ty = "TK_NUM   "
+		case TK_IDENT:
+			ty = "TK_IDENT "
 		case TK_RETURN:
 			ty = "TK_RETURN"
 		case TK_EOF:

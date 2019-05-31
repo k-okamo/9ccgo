@@ -6,6 +6,7 @@ var (
 
 const (
 	ND_NUM       = iota + 256 // Number literal
+	ND_IDENT                  // Identigier
 	ND_RETURN                 // Return statement
 	ND_COMP_STMT              // Compound statement
 	ND_EXPR_STMT              // Expressions statement
@@ -16,6 +17,7 @@ type Node struct {
 	lhs   *Node   // left-hand side
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
+	name  string  // Identifier
 	expr  *Node   // "return" or expression stmt
 	stmts *Vector // Compound statement
 }
@@ -28,6 +30,15 @@ func expect(ty int) {
 	pos++
 }
 
+func consume(ty int) bool {
+	t := tokens.data[pos].(*Token)
+	if t.ty != ty {
+		return false
+	}
+	pos++
+	return true
+}
+
 func new_node(op int, lhs, rhs *Node) *Node {
 	node := new(Node)
 	node.ty = op
@@ -36,21 +47,28 @@ func new_node(op int, lhs, rhs *Node) *Node {
 	return node
 }
 
-func number() *Node {
-	t := tokens.data[pos].(*Token)
-	if t.ty != TK_NUM {
-		error("number expected, but got %s", t.input)
-		return nil
-	}
-	pos++
+func term() *Node {
 	node := new(Node)
-	node.ty = ND_NUM
-	node.val = t.val
-	return node
+	t := tokens.data[pos].(*Token)
+	pos++
+
+	if t.ty == TK_NUM {
+		node.ty = ND_NUM
+		node.val = t.val
+		return node
+	}
+	if t.ty == TK_IDENT {
+		node.ty = ND_IDENT
+		node.name = t.name
+		return node
+	}
+
+	error("number expected, but got %s", t.input)
+	return nil
 }
 
 func mul() *Node {
-	lhs := number()
+	lhs := term()
 	for {
 		t := tokens.data[pos].(*Token)
 		op := t.ty
@@ -58,7 +76,7 @@ func mul() *Node {
 			return lhs
 		}
 		pos++
-		lhs = new_node(op, lhs, number())
+		lhs = new_node(op, lhs, term())
 	}
 	return lhs
 }
@@ -74,6 +92,14 @@ func expr() *Node {
 		}
 		pos++
 		lhs = new_node(op, lhs, mul())
+	}
+	return lhs
+}
+
+func assign() *Node {
+	lhs := expr()
+	if consume('=') {
+		return new_node('=', lhs, expr())
 	}
 	return lhs
 }
@@ -94,10 +120,10 @@ func stmt() *Node {
 		if t.ty == TK_RETURN {
 			pos++
 			e.ty = ND_RETURN
-			e.expr = expr()
+			e.expr = assign()
 		} else {
 			e.ty = ND_EXPR_STMT
-			e.expr = expr()
+			e.expr = assign()
 		}
 
 		vec_push(node.stmts, e)

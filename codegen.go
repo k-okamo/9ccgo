@@ -4,7 +4,22 @@ import (
 	"fmt"
 )
 
+var (
+	n int
+)
+
+func gen_label() string {
+	buf := fmt.Sprintf(".L%d", n)
+	n++
+	return buf
+}
+
 func gen_X86(irv *Vector) {
+
+	ret := gen_label()
+	fmt.Printf("\tpush rbp\n")
+	fmt.Printf("\tmov rbp, rsp\n")
+
 	for i := 0; i < irv.len; i++ {
 		ir := irv.data[i].(*IR)
 
@@ -15,7 +30,17 @@ func gen_X86(irv *Vector) {
 			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_RETURN:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
-			fmt.Printf("\tret\n")
+			//fmt.Printf("\tret\n")
+			fmt.Printf("\tjmp %s\n", ret)
+		case IR_ALLOCA:
+			if ir.rhs != 0 {
+				fmt.Printf("\tsub rsp, %d\n", ir.rhs)
+			}
+			fmt.Printf("\tmov %s, rsp\n", regs[ir.lhs])
+		case IR_LOAD:
+			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_STORE:
+			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '+':
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '-':
@@ -35,4 +60,10 @@ func gen_X86(irv *Vector) {
 			//assert(0 && "unknown operator")
 		}
 	}
+
+	fmt.Printf("%s:\n", ret)
+	fmt.Printf("\tmov rsp, rbp\n")
+	fmt.Printf("\tmov rsp, rbp\n")
+	fmt.Printf("\tpop rbp\n")
+	fmt.Printf("\tret\n")
 }
