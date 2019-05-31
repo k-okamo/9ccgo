@@ -24,9 +24,11 @@ const (
 )
 
 type IR struct {
-	op  int
-	lhs int
-	rhs int
+	op      int
+	lhs     int
+	rhs     int
+	has_imm bool
+	imm     int
 }
 
 func add(op, lhs, rhs int) *IR {
@@ -34,6 +36,16 @@ func add(op, lhs, rhs int) *IR {
 	ir.op = op
 	ir.lhs = lhs
 	ir.rhs = rhs
+	vec_push(code, ir)
+	return ir
+}
+
+func add_imm(op, lhs, imm int) *IR {
+	ir := new(IR)
+	ir.op = op
+	ir.lhs = lhs
+	ir.has_imm = true
+	ir.imm = imm
 	vec_push(code, ir)
 	return ir
 }
@@ -48,17 +60,12 @@ func gen_lval(node *Node) int {
 		bpoff += 8
 	}
 
-	r1 := regno
+	r := regno
 	regno++
 	off := map_get(vars, node.name).(int)
-	add(IR_MOV, r1, basereg)
-
-	r2 := regno
-	regno++
-	add(IR_IMM, r2, off)
-	add('+', r1, r2)
-	add(IR_KILL, r2, -1)
-	return r1
+	add(IR_MOV, r, basereg)
+	add_imm('+', r, off)
+	return r
 }
 
 func gen_expr(node *Node) int {
