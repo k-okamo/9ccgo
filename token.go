@@ -46,7 +46,7 @@ func scan(s string) *Vector {
 		}
 
 		// Single-letter token
-		if strchr("+-*/;=", c) != "" {
+		if strchr("+-*/;=()", c) != "" {
 			add_token(v, int(c), s)
 			i++
 			s = s[1:]
