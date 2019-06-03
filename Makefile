@@ -5,6 +5,7 @@ SRCS=$(wildcard *.go)
 	go build -o 9ccgo $(SRCS)
 	
 test: 9ccgo
+	./9ccgo -test
 	./test.sh
 
 clean:

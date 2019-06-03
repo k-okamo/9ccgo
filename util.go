@@ -8,6 +8,40 @@ import (
 	"unicode"
 )
 
+type StringBuilder struct {
+	data     string
+	capacity int
+	len      int
+}
+
+func new_sb() *StringBuilder {
+	sb := new(StringBuilder)
+	sb.data = ""
+	sb.capacity = 8
+	sb.len = 0
+	return sb
+}
+
+func sb_grow(sb *StringBuilder, len int) {
+	if sb.len+len <= sb.capacity {
+		return
+	}
+	for sb.len+len > sb.capacity {
+		sb.capacity *= 2
+	}
+}
+
+func sb_append(sb *StringBuilder, s string) {
+	len := len(s)
+	sb_grow(sb, len)
+	sb.data += s
+	sb.len += len
+}
+
+func sb_get(sb *StringBuilder) string {
+	return sb.data
+}
+
 // Map
 type Map struct {
 	keys *Vector
@@ -166,7 +200,31 @@ func map_test() {
 	expect_test_bool(file, line+13, false, map_exists(m, "baz"))
 }
 
+func sb_test() {
+	sb1 := new_sb()
+	_, file, line, _ := runtime.Caller(0)
+	expect_test(file, line+1, 0, len(sb_get(sb1)))
+
+	sb2 := new_sb()
+	sb_append(sb2, "foo")
+	expect_test_bool(file, line+5, true, sb_get(sb2) == "foo")
+
+	sb3 := new_sb()
+	sb_append(sb3, "foo")
+	sb_append(sb3, "bar")
+	expect_test_bool(file, line+10, true, sb_get(sb3) == "foobar")
+
+	sb4 := new_sb()
+	sb_append(sb4, "foo")
+	sb_append(sb4, "bar")
+	sb_append(sb4, "foo")
+	sb_append(sb4, "bar")
+	expect_test_bool(file, line+17, true, sb_get(sb4) == "foobarfoobar")
+
+}
+
 func util_test() {
 	vec_test()
 	map_test()
+	sb_test()
 }
