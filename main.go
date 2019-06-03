@@ -29,7 +29,7 @@ func main() {
 		input = os.Args[2]
 	} else {
 		if len(os.Args) != 2 {
-			fmt.Fprintf(os.Stderr, "Usage: 9ccgo [-test] [-dump-ir] <code>\n")
+			fmt.Fprintf(os.Stderr, "Usage: 9ccgo [-test] [-dump-ir1] [-dump-ir2] <code>\n")
 			os.Exit(0)
 		}
 		input = os.Args[1]

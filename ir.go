@@ -85,7 +85,7 @@ func tostr(ir *IR) string {
 	info := get_irinfo(ir)
 	switch info.ty {
 	case IR_TY_LABEL:
-		return format("%s:\n", ir.lhs)
+		return format(".L%d:\n", ir.lhs)
 	case IR_TY_REG:
 		return format("%s r%d\n", info.name, ir.lhs)
 	case IR_TY_REG_REG:
@@ -93,7 +93,7 @@ func tostr(ir *IR) string {
 	case IR_TY_REG_IMM:
 		return format("%s r%d, %d\n", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_LABEL:
-		return format("%s r%d, .L%s\n", info.name, ir.lhs, ir.rhs)
+		return format("%s r%d, .L%d\n", info.name, ir.lhs, ir.rhs)
 	default:
 		//asset(info.ty == IR_TY_NOARG)
 		return format("%s\n", info.name)
