@@ -7,7 +7,8 @@ var (
 const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_IDENT                  // Identigier
-	ND_RETURN                 // Return statement
+	ND_IF                     // "if"
+	ND_RETURN                 // "return"
 	ND_COMP_STMT              // Compound statement
 	ND_EXPR_STMT              // Expressions statement
 )
@@ -20,6 +21,10 @@ type Node struct {
 	name  string  // Identifier
 	expr  *Node   // "return" or expression stmt
 	stmts *Vector // Compound statement
+
+	// "if"
+	cond *Node
+	then *Node
 }
 
 func expect(ty int) {
@@ -111,6 +116,34 @@ func assign() *Node {
 }
 
 func stmt() *Node {
+	node := new(Node)
+	t := tokens.data[pos].(*Token)
+
+	switch t.ty {
+	case TK_IF:
+		pos++
+		node.ty = ND_IF
+		expect('(')
+		node.cond = assign()
+		expect(')')
+		node.then = stmt()
+		return node
+	case TK_RETURN:
+		pos++
+		node.ty = ND_RETURN
+		node.expr = assign()
+		expect(';')
+		return node
+	default:
+		node.ty = ND_EXPR_STMT
+		node.expr = assign()
+		expect(';')
+		return node
+	}
+	return nil
+}
+
+func compound_stmt() *Node {
 
 	node := new(Node)
 	node.ty = ND_COMP_STMT
@@ -121,24 +154,12 @@ func stmt() *Node {
 		if t.ty == TK_EOF {
 			return node
 		}
-
-		e := new(Node)
-		if t.ty == TK_RETURN {
-			pos++
-			e.ty = ND_RETURN
-			e.expr = assign()
-		} else {
-			e.ty = ND_EXPR_STMT
-			e.expr = assign()
-		}
-
-		vec_push(node.stmts, e)
-		expect(';')
+		vec_push(node.stmts, stmt())
 	}
 }
 
 func parse(v *Vector) *Node {
 	tokens = v
 	pos = 0
-	return stmt()
+	return compound_stmt()
 }

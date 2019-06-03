@@ -16,7 +16,7 @@ func gen_label() string {
 
 func gen_X86(irv *Vector) {
 
-	ret := gen_label()
+	ret := ".Lend"
 	fmt.Printf("\tpush rbp\n")
 	fmt.Printf("\tmov rbp, rsp\n")
 
@@ -32,8 +32,12 @@ func gen_X86(irv *Vector) {
 			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_RETURN:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
-			//fmt.Printf("\tret\n")
 			fmt.Printf("\tjmp %s\n", ret)
+		case IR_LABEL:
+			fmt.Printf("\t.L%d:\n", ir.lhs)
+		case IR_UNLESS:
+			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
+			fmt.Printf("\tje .L%d\n", ir.rhs)
 		case IR_ALLOCA:
 			if ir.rhs != 0 {
 				fmt.Printf("\tsub rsp, %d\n", ir.rhs)

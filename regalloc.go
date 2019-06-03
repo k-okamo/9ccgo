@@ -39,18 +39,19 @@ func alloc_regs(irv *Vector) {
 
 	for i := 0; i < irv.len; i++ {
 		ir := irv.data[i].(*IR)
+		info := get_irinfo(ir)
 
-		switch ir.op {
-		case IR_IMM, IR_ADD_IMM, IR_ALLOCA, IR_RETURN:
+		switch info.ty {
+		case IR_TY_REG, IR_TY_REG_IMM, IR_TY_REG_LABEL:
 			ir.lhs = alloc(ir.lhs)
-		case IR_MOV, IR_LOAD, IR_STORE, '+', '-', '*', '/':
+		case IR_TY_REG_REG:
 			ir.lhs = alloc(ir.lhs)
 			ir.rhs = alloc(ir.rhs)
-		case IR_KILL:
+		}
+
+		if ir.op == IR_KILL {
 			kill(reg_map[ir.lhs])
 			ir.op = IR_NOP
-		default:
-			//assert(0&& "unknown operator")
 		}
 	}
 }

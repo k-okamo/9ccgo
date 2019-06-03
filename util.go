@@ -44,6 +44,10 @@ func map_exists(m *Map, key string) bool {
 	return false
 }
 
+func format(format string, a ...interface{}) string {
+	return fmt.Sprintf(format, a...)
+}
+
 // Vector
 type Vector struct {
 	data     []interface{}

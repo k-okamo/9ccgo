@@ -13,6 +13,7 @@ var (
 const (
 	TK_NUM    = iota + 256 // Number literal
 	TK_IDENT               // Identifier
+	TK_IF                  // "if"
 	TK_RETURN              // "return"
 	TK_EOF                 // End marker
 )
@@ -99,6 +100,7 @@ func scan(s string) *Vector {
 
 func tokenize(s string) *Vector {
 	keywords = new_map()
+	map_put(keywords, "if", TK_IF)
 	map_put(keywords, "return", TK_RETURN)
 
 	return scan(s)
@@ -118,6 +120,8 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_NUM   "
 		case TK_IDENT:
 			ty = "TK_IDENT "
+		case TK_IF:
+			ty = "TK_IF    "
 		case TK_RETURN:
 			ty = "TK_RETURN"
 		case TK_EOF:
