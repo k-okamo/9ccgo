@@ -25,6 +25,7 @@ type Node struct {
 	// "if"
 	cond *Node
 	then *Node
+	els  *Node
 }
 
 func expect(ty int) {
@@ -126,7 +127,12 @@ func stmt() *Node {
 		expect('(')
 		node.cond = assign()
 		expect(')')
+
 		node.then = stmt()
+
+		if consume(TK_ELSE) {
+			node.els = stmt()
+		}
 		return node
 	case TK_RETURN:
 		pos++

@@ -22,7 +22,8 @@ var irinfo = []IRInfo{
 	{op: IR_IMM, name: "MOV", ty: IR_TY_REG_IMM},
 	{op: IR_ADD_IMM, name: "ADD", ty: IR_TY_REG_IMM},
 	{op: IR_MOV, name: "MOV", ty: IR_TY_REG_REG},
-	{op: IR_LABEL, name: "", ty: IR_LABEL},
+	{op: IR_LABEL, name: "", ty: IR_TY_LABEL},
+	{op: IR_JMP, name: "JMP", ty: IR_TY_LABEL},
 	{op: IR_UNLESS, name: "UNLESS", ty: IR_TY_REG_LABEL},
 	{op: IR_RETURN, name: "RET", ty: IR_TY_REG},
 	{op: IR_ALLOCA, name: "ALLOCA", ty: IR_TY_REG_IMM},
@@ -39,6 +40,7 @@ const (
 	IR_MOV
 	IR_RETURN
 	IR_LABEL
+	IR_JMP
 	IR_UNLESS
 	IR_ALLOCA
 	IR_LOAD
@@ -168,10 +170,23 @@ func gen_stmt(node *Node) {
 		r := gen_expr(node.cond)
 		x := label
 		label++
+
 		add(IR_UNLESS, r, x)
 		add(IR_KILL, r, -1)
+
 		gen_stmt(node.then)
+
+		if node.els == nil {
+			add(IR_LABEL, x, -1)
+			return
+		}
+
+		y := label
+		label++
+		add(IR_JMP, y, -1)
 		add(IR_LABEL, x, -1)
+		gen_stmt(node.els)
+		add(IR_LABEL, y, -1)
 		return
 	}
 	if node.ty == ND_RETURN {
@@ -230,6 +245,8 @@ func print_irs(irs *Vector) {
 			op = "IR_RETURN "
 		case IR_LABEL:
 			op = "IR_LABEL  "
+		case IR_JMP:
+			op = "IR_JMP    "
 		case IR_UNLESS:
 			op = "IR_UNLESS "
 		case IR_ALLOCA:

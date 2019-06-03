@@ -35,6 +35,8 @@ func gen_X86(irv *Vector) {
 			fmt.Printf("\tjmp %s\n", ret)
 		case IR_LABEL:
 			fmt.Printf("\t.L%d:\n", ir.lhs)
+		case IR_JMP:
+			fmt.Printf("\tjmp .L%d\n", ir.lhs)
 		case IR_UNLESS:
 			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
 			fmt.Printf("\tje .L%d\n", ir.rhs)
