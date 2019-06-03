@@ -41,13 +41,11 @@ func alloc_regs(irv *Vector) {
 		ir := irv.data[i].(*IR)
 
 		switch ir.op {
-		case IR_IMM, IR_ALLOCA, IR_RETURN:
+		case IR_IMM, IR_ADD_IMM, IR_ALLOCA, IR_RETURN:
 			ir.lhs = alloc(ir.lhs)
 		case IR_MOV, IR_LOAD, IR_STORE, '+', '-', '*', '/':
 			ir.lhs = alloc(ir.lhs)
-			if !ir.has_imm {
-				ir.rhs = alloc(ir.rhs)
-			}
+			ir.rhs = alloc(ir.rhs)
 		case IR_KILL:
 			kill(reg_map[ir.lhs])
 			ir.op = IR_NOP

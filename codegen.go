@@ -26,6 +26,8 @@ func gen_X86(irv *Vector) {
 		switch ir.op {
 		case IR_IMM:
 			fmt.Printf("\tmov %s, %d\n", regs[ir.lhs], ir.rhs)
+		case IR_ADD_IMM:
+			fmt.Printf("\tadd %s, %d\n", regs[ir.lhs], ir.rhs)
 		case IR_MOV:
 			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_RETURN:
@@ -42,11 +44,7 @@ func gen_X86(irv *Vector) {
 		case IR_STORE:
 			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '+':
-			if ir.has_imm {
-				fmt.Printf("\tadd %s, %d\n", regs[ir.lhs], ir.imm)
-			} else {
-				fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
-			}
+			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '-':
 			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '*':

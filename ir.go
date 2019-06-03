@@ -14,6 +14,7 @@ var (
 
 const (
 	IR_IMM = iota
+	IR_ADD_IMM
 	IR_MOV
 	IR_RETURN
 	IR_ALLOCA
@@ -24,11 +25,9 @@ const (
 )
 
 type IR struct {
-	op      int
-	lhs     int
-	rhs     int
-	has_imm bool
-	imm     int
+	op  int
+	lhs int
+	rhs int
 }
 
 func add(op, lhs, rhs int) *IR {
@@ -36,16 +35,6 @@ func add(op, lhs, rhs int) *IR {
 	ir.op = op
 	ir.lhs = lhs
 	ir.rhs = rhs
-	vec_push(code, ir)
-	return ir
-}
-
-func add_imm(op, lhs, imm int) *IR {
-	ir := new(IR)
-	ir.op = op
-	ir.lhs = lhs
-	ir.has_imm = true
-	ir.imm = imm
 	vec_push(code, ir)
 	return ir
 }
@@ -64,7 +53,7 @@ func gen_lval(node *Node) int {
 	regno++
 	off := map_get(vars, node.name).(int)
 	add(IR_MOV, r, basereg)
-	add_imm('+', r, off)
+	add(IR_ADD_IMM, r, off)
 	return r
 }
 
@@ -145,27 +134,29 @@ func print_irs(irs *Vector) {
 		op := ""
 		switch ir.op {
 		case IR_IMM:
-			op = "IR_IMM   "
+			op = "IR_IMM    "
+		case IR_ADD_IMM:
+			op = "IR_ADD_IMM"
 		case IR_MOV:
-			op = "IR_MOV   "
+			op = "IR_MOV    "
 		case IR_RETURN:
-			op = "IR_RETURN"
+			op = "IR_RETURN "
 		case IR_ALLOCA:
-			op = "IR_ALLOCA"
+			op = "IR_ALLOCA "
 		case IR_LOAD:
-			op = "IR_LOAD  "
+			op = "IR_LOAD   "
 		case IR_STORE:
-			op = "IR_STORE "
+			op = "IR_STORE  "
 		case IR_KILL:
-			op = "IR_KILL  "
+			op = "IR_KILL   "
 		case IR_NOP:
-			op = "IR_NOP   "
+			op = "IR_NOP    "
 		case '+':
-			op = "+        "
+			op = "+         "
 		case '-':
-			op = "-        "
+			op = "-         "
 		default:
-			op = "         "
+			op = "          "
 		}
 		fmt.Printf("[%02d] op: %s, lhs: %d, rhs: %d\n", i, op, ir.lhs, ir.rhs)
 	}
