@@ -47,6 +47,11 @@ func alloc_regs(irv *Vector) {
 		case IR_TY_REG_REG:
 			ir.lhs = alloc(ir.lhs)
 			ir.rhs = alloc(ir.rhs)
+		case IR_TY_CALL:
+			ir.lhs = alloc(ir.lhs)
+			for i := 0; i < ir.nargs; i++ {
+				ir.args[i] = alloc(ir.args[i])
+			}
 		}
 
 		if ir.op == IR_KILL {

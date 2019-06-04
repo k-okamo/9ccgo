@@ -33,6 +33,31 @@ func gen_X86(irv *Vector) {
 		case IR_RETURN:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
 			fmt.Printf("\tjmp %s\n", ret)
+		case IR_CALL:
+			{
+				fmt.Printf("\tpush rbx\n")
+				fmt.Printf("\tpush rbp\n")
+				fmt.Printf("\tpush rsp\n")
+				fmt.Printf("\tpush r12\n")
+				fmt.Printf("\tpush r13\n")
+				fmt.Printf("\tpush r14\n")
+				fmt.Printf("\tpush r15\n")
+				arg := []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+				for i := 0; i < ir.nargs; i++ {
+					fmt.Printf("\tmov %s, %s\n", arg[i], regs[ir.args[i]])
+				}
+				fmt.Printf("\tmov rax, 0\n")
+				fmt.Printf("\tcall %s\n", ir.name)
+				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+
+				fmt.Printf("\tpop r15\n")
+				fmt.Printf("\tpop r14\n")
+				fmt.Printf("\tpop r13\n")
+				fmt.Printf("\tpop r12\n")
+				fmt.Printf("\tpop rsp\n")
+				fmt.Printf("\tpop rbp\n")
+				fmt.Printf("\tpop rbx\n")
+			}
 		case IR_LABEL:
 			fmt.Printf("\t.L%d:\n", ir.lhs)
 		case IR_JMP:

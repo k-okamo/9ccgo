@@ -25,6 +25,7 @@ var irinfo = []IRInfo{
 	{op: IR_LABEL, name: "", ty: IR_TY_LABEL},
 	{op: IR_JMP, name: "JMP", ty: IR_TY_LABEL},
 	{op: IR_UNLESS, name: "UNLESS", ty: IR_TY_REG_LABEL},
+	{op: IR_CALL, name: "CALL", ty: IR_TY_CALL},
 	{op: IR_RETURN, name: "RET", ty: IR_TY_REG},
 	{op: IR_ALLOCA, name: "ALLOCA", ty: IR_TY_REG_IMM},
 	{op: IR_LOAD, name: "LOAD", ty: IR_TY_REG_REG},
@@ -39,6 +40,7 @@ const (
 	IR_ADD_IMM
 	IR_MOV
 	IR_RETURN
+	IR_CALL
 	IR_LABEL
 	IR_JMP
 	IR_UNLESS
@@ -56,12 +58,18 @@ const (
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
 	IR_TY_REG_LABEL
+	IR_TY_CALL
 )
 
 type IR struct {
 	op  int
 	lhs int
 	rhs int
+
+	// Function call
+	name  string
+	nargs int
+	args  [6]int
 }
 
 type IRInfo struct {
@@ -94,6 +102,16 @@ func tostr(ir *IR) string {
 		return format("%s r%d, %d\n", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_LABEL:
 		return format("%s r%d, .L%d\n", info.name, ir.lhs, ir.rhs)
+	case IR_TY_CALL:
+		{
+			sb := new_sb()
+			sb_append(sb, format("r%d = %s(", ir.name, ir.lhs))
+			for i := 0; i < ir.nargs; i++ {
+				sb_append(sb, format(", r%d", ir.args))
+			}
+			sb_append(sb, ")\n")
+			return sb_get(sb)
+		}
 	default:
 		//asset(info.ty == IR_TY_NOARG)
 		return format("%s\n", info.name)
@@ -146,6 +164,26 @@ func gen_expr(node *Node) int {
 	if node.ty == ND_IDENT {
 		r := gen_lval(node)
 		add(IR_LOAD, r, r)
+		return r
+	}
+
+	if node.ty == IR_CALL {
+		var args [6]int
+		for i := 0; i < node.args.len; i++ {
+			args[i] = gen_expr(node.args.data[i].(*Node))
+		}
+		r := regno
+		regno++
+
+		ir := add(IR_CALL, r, -1)
+		ir.name = node.name
+		ir.nargs = node.args.len
+		for i := 0; i < 6; i++ {
+			ir.args[i] = args[i]
+		}
+		for i := 0; i < ir.nargs; i++ {
+			add(IR_KILL, ir.args[i], -1)
+		}
 		return r
 	}
 
