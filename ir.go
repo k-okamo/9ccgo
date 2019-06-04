@@ -80,7 +80,6 @@ type IRInfo struct {
 
 type Function struct {
 	name      string
-	args      [6]int
 	stacksize int
 	ir        *Vector
 }
