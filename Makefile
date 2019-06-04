@@ -2,7 +2,7 @@
 SRCS=$(wildcard *.go)
 
 9ccgo: clean
-	go build -o 9ccgo $(SRCS)
+	go build -gcflags '-N -l' -o 9ccgo $(SRCS)
 	
 test: 9ccgo
 	./9ccgo -test

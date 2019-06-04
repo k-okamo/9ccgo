@@ -10,6 +10,7 @@ const (
 	ND_IF                     // "if"
 	ND_RETURN                 // "return"
 	ND_CALL                   // Function call
+	ND_FUNC                   // Function definition
 	ND_COMP_STMT              // Compound statement
 	ND_EXPR_STMT              // Expressions statement
 )
@@ -28,6 +29,9 @@ type Node struct {
 	cond *Node
 	then *Node
 	els  *Node
+
+	// Function definition
+	body *Node
 
 	// Function call
 	args *Vector
@@ -176,17 +180,39 @@ func compound_stmt() *Node {
 	node.ty = ND_COMP_STMT
 	node.stmts = new_vec()
 
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty == TK_EOF {
-			return node
-		}
+	for !consume('}') {
 		vec_push(node.stmts, stmt())
 	}
+	return node
 }
 
-func parse(v *Vector) *Node {
-	tokens = v
+func function() *Node {
+	node := new(Node)
+	node.ty = ND_FUNC
+	node.args = new_vec()
+
+	t := tokens.data[pos].(*Token)
+	if t.ty != TK_IDENT {
+		error("function name expected, but got %s", t.input)
+	}
+	node.name = t.name
+	pos++
+
+	expect('(')
+	for !consume(')') {
+		vec_push(node.args, term())
+	}
+	expect('{')
+	node.body = compound_stmt()
+	return node
+}
+
+func parse(tokens_ *Vector) *Vector {
+	tokens = tokens_
 	pos = 0
-	return compound_stmt()
+	v := new_vec()
+	for (tokens.data[pos].(*Token)).ty != TK_EOF {
+		vec_push(v, function())
+	}
+	return v
 }

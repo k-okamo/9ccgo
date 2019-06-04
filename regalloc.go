@@ -1,7 +1,7 @@
 package main
 
 var (
-	regs    = []string{"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"}
+	regs    = []string{"r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
 	used    [8]bool
 	reg_map []int
 )
@@ -9,7 +9,7 @@ var (
 func alloc(ir_reg int) int {
 	if reg_map[ir_reg] != -1 {
 		r := reg_map[ir_reg]
-		//assert(used[r])
+		//assert("used[r])
 		return r
 	}
 
@@ -30,13 +30,7 @@ func kill(r int) {
 	used[r] = false
 }
 
-func alloc_regs(irv *Vector) {
-
-	reg_map = make([]int, irv.len)
-	for i := range reg_map {
-		reg_map[i] = -1
-	}
-
+func visit(irv *Vector) {
 	for i := 0; i < irv.len; i++ {
 		ir := irv.data[i].(*IR)
 		info := get_irinfo(ir)
@@ -58,5 +52,17 @@ func alloc_regs(irv *Vector) {
 			kill(reg_map[ir.lhs])
 			ir.op = IR_NOP
 		}
+	}
+}
+
+func alloc_regs(fns *Vector) {
+	for i := 0; i < fns.len; i++ {
+		fn := fns.data[i].(*Function)
+
+		reg_map = make([]int, fn.ir.len)
+		for j := 0; j < fn.ir.len; j++ {
+			reg_map[j] = -1
+		}
+		visit(fn.ir)
 	}
 }

@@ -14,14 +14,22 @@ func gen_label() string {
 	return buf
 }
 
-func gen_X86(irv *Vector) {
+func gen(fn *Function) {
 
-	ret := ".Lend"
+	ret := format(".Lend%d", label)
+	label++
+
+	fmt.Printf(".global %s\n", fn.name)
+	fmt.Printf("%s:\n", fn.name)
+	fmt.Printf("\tpush r12\n")
+	fmt.Printf("\tpush r13\n")
+	fmt.Printf("\tpush r14\n")
+	fmt.Printf("\tpush r15\n")
 	fmt.Printf("\tpush rbp\n")
 	fmt.Printf("\tmov rbp, rsp\n")
 
-	for i := 0; i < irv.len; i++ {
-		ir := irv.data[i].(*IR)
+	for i := 0; i < fn.ir.len; i++ {
+		ir := fn.ir.data[i].(*IR)
 
 		switch ir.op {
 		case IR_IMM:
@@ -35,28 +43,18 @@ func gen_X86(irv *Vector) {
 			fmt.Printf("\tjmp %s\n", ret)
 		case IR_CALL:
 			{
-				fmt.Printf("\tpush rbx\n")
-				fmt.Printf("\tpush rbp\n")
-				fmt.Printf("\tpush rsp\n")
-				fmt.Printf("\tpush r12\n")
-				fmt.Printf("\tpush r13\n")
-				fmt.Printf("\tpush r14\n")
-				fmt.Printf("\tpush r15\n")
 				arg := []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 				for i := 0; i < ir.nargs; i++ {
 					fmt.Printf("\tmov %s, %s\n", arg[i], regs[ir.args[i]])
 				}
+				fmt.Printf("\tpush r10\n")
+				fmt.Printf("\tpush r11\n")
 				fmt.Printf("\tmov rax, 0\n")
 				fmt.Printf("\tcall %s\n", ir.name)
 				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
-
-				fmt.Printf("\tpop r15\n")
-				fmt.Printf("\tpop r14\n")
-				fmt.Printf("\tpop r13\n")
-				fmt.Printf("\tpop r12\n")
-				fmt.Printf("\tpop rsp\n")
-				fmt.Printf("\tpop rbp\n")
-				fmt.Printf("\tpop rbx\n")
+				fmt.Printf("\tpop r11\n")
+				fmt.Printf("\tpop r10\n")
+				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
 			}
 		case IR_LABEL:
 			fmt.Printf("\t.L%d:\n", ir.lhs)
@@ -96,7 +94,18 @@ func gen_X86(irv *Vector) {
 
 	fmt.Printf("%s:\n", ret)
 	fmt.Printf("\tmov rsp, rbp\n")
-	fmt.Printf("\tmov rsp, rbp\n")
 	fmt.Printf("\tpop rbp\n")
+	fmt.Printf("\tpop r15\n")
+	fmt.Printf("\tpop r14\n")
+	fmt.Printf("\tpop r13\n")
+	fmt.Printf("\tpop r12\n")
 	fmt.Printf("\tret\n")
+}
+
+func gen_x86(fns *Vector) {
+	fmt.Printf(".intel_syntax noprefix\n")
+
+	for i := 0; i < fns.len; i++ {
+		gen(fns.data[i].(*Function))
+	}
 }

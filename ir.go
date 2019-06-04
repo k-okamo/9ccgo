@@ -78,6 +78,12 @@ type IRInfo struct {
 	ty   int
 }
 
+type Function struct {
+	name string
+	args [6]int
+	ir   *Vector
+}
+
 func get_irinfo(ir *IR) IRInfo {
 
 	for _, info := range irinfo {
@@ -105,7 +111,7 @@ func tostr(ir *IR) string {
 	case IR_TY_CALL:
 		{
 			sb := new_sb()
-			sb_append(sb, format("r%d = %s(", ir.name, ir.lhs))
+			sb_append(sb, format("r%d = %s(", ir.lhs, ir.name))
 			for i := 0; i < ir.nargs; i++ {
 				sb_append(sb, format(", r%d", ir.args))
 			}
@@ -121,7 +127,11 @@ func tostr(ir *IR) string {
 
 func dump_ir(irv *Vector) {
 	for i := 0; i < irv.len; i++ {
-		fmt.Fprintf(os.Stderr, "%s", tostr(irv.data[i].(*IR)))
+		fn := irv.data[i].(*Function)
+		fmt.Fprintf(os.Stderr, "%s():\n", fn.name)
+		for j := 0; j < fn.ir.len; j++ {
+			fmt.Fprintf(os.Stderr, " %s", tostr(fn.ir.data[j].(*IR)))
+		}
 	}
 }
 
@@ -167,7 +177,7 @@ func gen_expr(node *Node) int {
 		return r
 	}
 
-	if node.ty == IR_CALL {
+	if node.ty == ND_CALL {
 		var args [6]int
 		for i := 0; i < node.args.len; i++ {
 			args[i] = gen_expr(node.args.data[i].(*Node))
@@ -247,20 +257,31 @@ func gen_stmt(node *Node) {
 	error("unknown node: %d", node.ty)
 }
 
-func gen_ir(node *Node) *Vector {
-	// assert(node.ty == ND_COMP_STMT)
-	code = new_vec()
-	regno = 1
-	basereg = 0
-	vars = new_map()
-	bpoff = 0
-	label = 0
+func gen_ir(nodes *Vector) *Vector {
+	v := new_vec()
 
-	alloca := add(IR_ALLOCA, basereg, -1)
-	gen_stmt(node)
-	alloca.rhs = bpoff
-	add(IR_KILL, basereg, -1)
-	return code
+	for i := 0; i < nodes.len; i++ {
+		node := nodes.data[i].(*Node)
+		//assert(node.ty == ND_FUNC)
+
+		code = new_vec()
+		regno = 1
+		basereg = 0
+		vars = new_map()
+		bpoff = 0
+		label = 0
+
+		alloca := add(IR_ALLOCA, basereg, -1)
+		gen_stmt(node.body)
+		alloca.rhs = bpoff
+		add(IR_KILL, basereg, -1)
+
+		fn := new(Function)
+		fn.name = node.name
+		fn.ir = code
+		vec_push(v, fn)
+	}
+	return v
 }
 
 // [Debug] intermediate reprensations

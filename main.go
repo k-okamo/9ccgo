@@ -38,21 +38,17 @@ func main() {
 	// Tokenize and parse.
 	tokens = tokenize(input)
 	print_tokens(tokens) // Debug
-	node := parse(tokens)
+	fns := gen_ir(parse(tokens))
 
-	irv := gen_ir(node)
-	print_irs(irv) // Debug
+	//print_irs(irv) // Debug
 	if dump_ir1 {
-		dump_ir(irv)
+		dump_ir(fns)
 	}
 
-	alloc_regs(irv)
+	alloc_regs(fns)
 	if dump_ir2 {
-		dump_ir(irv)
+		dump_ir(fns)
 	}
 
-	fmt.Printf(".intel_syntax noprefix\n")
-	fmt.Printf(".global main\n")
-	fmt.Printf("main:\n")
-	gen_X86(irv)
+	gen_x86(fns)
 }
