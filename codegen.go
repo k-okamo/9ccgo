@@ -21,12 +21,13 @@ func gen(fn *Function) {
 
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)
+	fmt.Printf("\tpush rbp\n")
+	fmt.Printf("\tmov rbp, rsp\n")
+	fmt.Printf("\tsub rsp, %d\n", fn.stacksize)
 	fmt.Printf("\tpush r12\n")
 	fmt.Printf("\tpush r13\n")
 	fmt.Printf("\tpush r14\n")
 	fmt.Printf("\tpush r15\n")
-	fmt.Printf("\tpush rbp\n")
-	fmt.Printf("\tmov rbp, rsp\n")
 
 	for i := 0; i < fn.ir.len; i++ {
 		ir := fn.ir.data[i].(*IR)
@@ -63,11 +64,6 @@ func gen(fn *Function) {
 		case IR_UNLESS:
 			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
 			fmt.Printf("\tje .L%d\n", ir.rhs)
-		case IR_ALLOCA:
-			if ir.rhs != 0 {
-				fmt.Printf("\tsub rsp, %d\n", ir.rhs)
-			}
-			fmt.Printf("\tmov %s, rsp\n", regs[ir.lhs])
 		case IR_LOAD:
 			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_STORE:
@@ -93,12 +89,12 @@ func gen(fn *Function) {
 	}
 
 	fmt.Printf("%s:\n", ret)
-	fmt.Printf("\tmov rsp, rbp\n")
-	fmt.Printf("\tpop rbp\n")
 	fmt.Printf("\tpop r15\n")
 	fmt.Printf("\tpop r14\n")
 	fmt.Printf("\tpop r13\n")
 	fmt.Printf("\tpop r12\n")
+	fmt.Printf("\tmov rsp, rbp\n")
+	fmt.Printf("\tpop rbp\n")
 	fmt.Printf("\tret\n")
 }
 

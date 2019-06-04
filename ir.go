@@ -6,19 +6,18 @@ import (
 )
 
 var (
-	regno   int
-	basereg int
-	bpoff   int
-	label   int
-	code    *Vector
-	vars    *Map
+	code      *Vector
+	vars      *Map
+	regno     int
+	stacksize int
+	label     int
 )
 
 var irinfo = []IRInfo{
-	{op: '+', name: "+", ty: IR_TY_REG_REG},
-	{op: '-', name: "-", ty: IR_TY_REG_REG},
-	{op: '*', name: "*", ty: IR_TY_REG_REG},
-	{op: '/', name: "/", ty: IR_TY_REG_REG},
+	{op: '+', name: "ADD", ty: IR_TY_REG_REG},
+	{op: '-', name: "SUB", ty: IR_TY_REG_REG},
+	{op: '*', name: "MUL", ty: IR_TY_REG_REG},
+	{op: '/', name: "DIV", ty: IR_TY_REG_REG},
 	{op: IR_IMM, name: "MOV", ty: IR_TY_REG_IMM},
 	{op: IR_ADD_IMM, name: "ADD", ty: IR_TY_REG_IMM},
 	{op: IR_MOV, name: "MOV", ty: IR_TY_REG_REG},
@@ -27,7 +26,6 @@ var irinfo = []IRInfo{
 	{op: IR_UNLESS, name: "UNLESS", ty: IR_TY_REG_LABEL},
 	{op: IR_CALL, name: "CALL", ty: IR_TY_CALL},
 	{op: IR_RETURN, name: "RET", ty: IR_TY_REG},
-	{op: IR_ALLOCA, name: "ALLOCA", ty: IR_TY_REG_IMM},
 	{op: IR_LOAD, name: "LOAD", ty: IR_TY_REG_REG},
 	{op: IR_STORE, name: "STORE", ty: IR_TY_REG_REG},
 	{op: IR_KILL, name: "KILL", ty: IR_TY_REG},
@@ -44,7 +42,6 @@ const (
 	IR_LABEL
 	IR_JMP
 	IR_UNLESS
-	IR_ALLOCA
 	IR_LOAD
 	IR_STORE
 	IR_KILL
@@ -79,9 +76,10 @@ type IRInfo struct {
 }
 
 type Function struct {
-	name string
-	args [6]int
-	ir   *Vector
+	name      string
+	args      [6]int
+	stacksize int
+	ir        *Vector
 }
 
 func get_irinfo(ir *IR) IRInfo {
@@ -150,15 +148,15 @@ func gen_lval(node *Node) int {
 	}
 
 	if !map_exists(vars, node.name) {
-		map_put(vars, node.name, bpoff)
-		bpoff += 8
+		stacksize += 8
+		map_put(vars, node.name, stacksize)
 	}
 
 	r := regno
 	regno++
 	off := map_get(vars, node.name).(int)
-	add(IR_MOV, r, basereg)
-	add(IR_ADD_IMM, r, off)
+	add(IR_MOV, r, 0)
+	add(IR_ADD_IMM, r, -off)
 	return r
 }
 
@@ -265,19 +263,15 @@ func gen_ir(nodes *Vector) *Vector {
 		//assert(node.ty == ND_FUNC)
 
 		code = new_vec()
-		regno = 1
-		basereg = 0
 		vars = new_map()
-		bpoff = 0
-		label = 0
+		regno = 1
+		stacksize = 8
 
-		alloca := add(IR_ALLOCA, basereg, -1)
 		gen_stmt(node.body)
-		alloca.rhs = bpoff
-		add(IR_KILL, basereg, -1)
 
 		fn := new(Function)
 		fn.name = node.name
+		fn.stacksize = stacksize
 		fn.ir = code
 		vec_push(v, fn)
 	}
@@ -308,8 +302,6 @@ func print_irs(irs *Vector) {
 			op = "IR_JMP    "
 		case IR_UNLESS:
 			op = "IR_UNLESS "
-		case IR_ALLOCA:
-			op = "IR_ALLOCA "
 		case IR_LOAD:
 			op = "IR_LOAD   "
 		case IR_STORE:
