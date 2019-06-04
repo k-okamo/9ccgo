@@ -73,15 +73,15 @@ func gen(fn *Function) {
 			for i := 0; i < ir.lhs; i++ {
 				fmt.Printf("\tmov [rbp-%d], %s\n", (i+1)*8, argreg[i])
 			}
-		case '+':
+		case IR_ADD:
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
-		case '-':
+		case IR_SUB:
 			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
-		case '*':
+		case IR_MUL:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.rhs])
 			fmt.Printf("\tmul %s\n", regs[ir.lhs])
 			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
-		case '/':
+		case IR_DIV:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
 			fmt.Printf("\tcqo\n")
 			fmt.Printf("\tdiv %s\n", regs[ir.rhs])

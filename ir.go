@@ -14,10 +14,10 @@ var (
 )
 
 var irinfo = []IRInfo{
-	{op: '+', name: "ADD", ty: IR_TY_REG_REG},
-	{op: '-', name: "SUB", ty: IR_TY_REG_REG},
-	{op: '*', name: "MUL", ty: IR_TY_REG_REG},
-	{op: '/', name: "DIV", ty: IR_TY_REG_REG},
+	{op: IR_ADD, name: "ADD", ty: IR_TY_REG_REG},
+	{op: IR_SUB, name: "SUB", ty: IR_TY_REG_REG},
+	{op: IR_MUL, name: "MUL", ty: IR_TY_REG_REG},
+	{op: IR_DIV, name: "DIV", ty: IR_TY_REG_REG},
 	{op: IR_IMM, name: "MOV", ty: IR_TY_REG_IMM},
 	{op: IR_SUB_IMM, name: "SUB", ty: IR_TY_REG_IMM},
 	{op: IR_MOV, name: "MOV", ty: IR_TY_REG_REG},
@@ -35,7 +35,11 @@ var irinfo = []IRInfo{
 }
 
 const (
-	IR_IMM = iota + 256
+	IR_ADD = iota + 256
+	IR_SUB
+	IR_MUL
+	IR_DIV
+	IR_IMM
 	IR_SUB_IMM
 	IR_MOV
 	IR_RETURN
@@ -207,9 +211,20 @@ func gen_expr(node *Node) int {
 	}
 	// assert(strche("+-*/", node.ty))
 
+	var ty int
+	if node.ty == '+' {
+		ty = IR_ADD
+	} else if node.ty == '-' {
+		ty = IR_SUB
+	} else if node.ty == '*' {
+		ty = IR_MUL
+	} else {
+		ty = IR_DIV
+	}
+
 	lhs, rhs := gen_expr(node.lhs), gen_expr(node.rhs)
 
-	add(node.ty, lhs, rhs)
+	add(ty, lhs, rhs)
 	add(IR_KILL, rhs, -1)
 	return lhs
 }
@@ -335,10 +350,14 @@ func print_irs(irs *Vector) {
 			op = "IR_SAVE_ARGS"
 		case IR_NOP:
 			op = "IR_NOP      "
-		case '+':
-			op = "+           "
-		case '-':
-			op = "-           "
+		case IR_ADD:
+			op = "IR_ADD      "
+		case IR_SUB:
+			op = "IR_SUB      "
+		case IR_MUL:
+			op = "IR_MUL      "
+		case IR_DIV:
+			op = "IR_DIV      "
 		default:
 			op = "            "
 		}
