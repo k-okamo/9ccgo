@@ -19,7 +19,7 @@ var irinfo = []IRInfo{
 	{op: '*', name: "MUL", ty: IR_TY_REG_REG},
 	{op: '/', name: "DIV", ty: IR_TY_REG_REG},
 	{op: IR_IMM, name: "MOV", ty: IR_TY_REG_IMM},
-	{op: IR_ADD_IMM, name: "ADD", ty: IR_TY_REG_IMM},
+	{op: IR_SUB_IMM, name: "SUB", ty: IR_TY_REG_IMM},
 	{op: IR_MOV, name: "MOV", ty: IR_TY_REG_REG},
 	{op: IR_LABEL, name: "", ty: IR_TY_LABEL},
 	{op: IR_JMP, name: "JMP", ty: IR_TY_LABEL},
@@ -29,13 +29,14 @@ var irinfo = []IRInfo{
 	{op: IR_LOAD, name: "LOAD", ty: IR_TY_REG_REG},
 	{op: IR_STORE, name: "STORE", ty: IR_TY_REG_REG},
 	{op: IR_KILL, name: "KILL", ty: IR_TY_REG},
+	{op: IR_SAVE_ARGS, name: "SAVE_ARGS", ty: IR_TY_IMM},
 	{op: IR_NOP, name: "NOP", ty: IR_TY_NOARG},
 	{op: 0, name: "", ty: 0},
 }
 
 const (
 	IR_IMM = iota + 256
-	IR_ADD_IMM
+	IR_SUB_IMM
 	IR_MOV
 	IR_RETURN
 	IR_CALL
@@ -45,12 +46,14 @@ const (
 	IR_LOAD
 	IR_STORE
 	IR_KILL
+	IR_SAVE_ARGS
 	IR_NOP
 )
 
 const (
 	IR_TY_NOARG = iota + 256
 	IR_TY_REG
+	IR_TY_IMM
 	IR_TY_LABEL
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
@@ -98,6 +101,8 @@ func tostr(ir *IR) string {
 	switch info.ty {
 	case IR_TY_LABEL:
 		return format(".L%d:\n", ir.lhs)
+	case IR_TY_IMM:
+		return format("%s %d\n", info.name, ir.lhs)
 	case IR_TY_REG:
 		return format("%s r%d\n", info.name, ir.lhs)
 	case IR_TY_REG_REG:
@@ -156,7 +161,7 @@ func gen_lval(node *Node) int {
 	regno++
 	off := map_get(vars, node.name).(int)
 	add(IR_MOV, r, 0)
-	add(IR_ADD_IMM, r, -off)
+	add(IR_SUB_IMM, r, off)
 	return r
 }
 
@@ -255,6 +260,24 @@ func gen_stmt(node *Node) {
 	error("unknown node: %d", node.ty)
 }
 
+func gen_args(nodes *Vector) {
+	if nodes.len == 0 {
+		return
+	}
+
+	add(IR_SAVE_ARGS, nodes.len, -1)
+
+	for i := 0; i < nodes.len; i++ {
+		node := nodes.data[i].(*Node)
+		if node.ty != ND_IDENT {
+			error("bad parameter")
+		}
+
+		stacksize += 8
+		map_put(vars, node.name, stacksize)
+	}
+}
+
 func gen_ir(nodes *Vector) *Vector {
 	v := new_vec()
 
@@ -265,8 +288,9 @@ func gen_ir(nodes *Vector) *Vector {
 		code = new_vec()
 		vars = new_map()
 		regno = 1
-		stacksize = 8
+		stacksize = 0
 
+		gen_args(node.args)
 		gen_stmt(node.body)
 
 		fn := new(Function)
@@ -289,33 +313,35 @@ func print_irs(irs *Vector) {
 		op := ""
 		switch ir.op {
 		case IR_IMM:
-			op = "IR_IMM    "
-		case IR_ADD_IMM:
-			op = "IR_ADD_IMM"
+			op = "IR_IMM      "
+		case IR_SUB_IMM:
+			op = "IR_SUB_IMM  "
 		case IR_MOV:
-			op = "IR_MOV    "
+			op = "IR_MOV      "
 		case IR_RETURN:
-			op = "IR_RETURN "
+			op = "IR_RETURN   "
 		case IR_LABEL:
-			op = "IR_LABEL  "
+			op = "IR_LABEL    "
 		case IR_JMP:
-			op = "IR_JMP    "
+			op = "IR_JMP      "
 		case IR_UNLESS:
-			op = "IR_UNLESS "
+			op = "IR_UNLESS   "
 		case IR_LOAD:
-			op = "IR_LOAD   "
+			op = "IR_LOAD     "
 		case IR_STORE:
-			op = "IR_STORE  "
+			op = "IR_STORE    "
 		case IR_KILL:
-			op = "IR_KILL   "
+			op = "IR_KILL     "
+		case IR_SAVE_ARGS:
+			op = "IR_SAVE_ARGS"
 		case IR_NOP:
-			op = "IR_NOP    "
+			op = "IR_NOP      "
 		case '+':
-			op = "+         "
+			op = "+           "
 		case '-':
-			op = "-         "
+			op = "-           "
 		default:
-			op = "          "
+			op = "            "
 		}
 		fmt.Printf("[%02d] op: %s, lhs: %d, rhs: %d\n", i, op, ir.lhs, ir.rhs)
 	}

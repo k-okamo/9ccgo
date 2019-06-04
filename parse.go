@@ -199,8 +199,12 @@ func function() *Node {
 	pos++
 
 	expect('(')
-	for !consume(')') {
+	if !consume(')') {
 		vec_push(node.args, term())
+		for consume(',') {
+			vec_push(node.args, term())
+		}
+		expect(')')
 	}
 	expect('{')
 	node.body = compound_stmt()

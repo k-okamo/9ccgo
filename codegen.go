@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	n int
+	n      int
+	argreg = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 )
 
 func gen_label() string {
@@ -35,8 +36,8 @@ func gen(fn *Function) {
 		switch ir.op {
 		case IR_IMM:
 			fmt.Printf("\tmov %s, %d\n", regs[ir.lhs], ir.rhs)
-		case IR_ADD_IMM:
-			fmt.Printf("\tadd %s, %d\n", regs[ir.lhs], ir.rhs)
+		case IR_SUB_IMM:
+			fmt.Printf("\tsub %s, %d\n", regs[ir.lhs], ir.rhs)
 		case IR_MOV:
 			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_RETURN:
@@ -44,9 +45,9 @@ func gen(fn *Function) {
 			fmt.Printf("\tjmp %s\n", ret)
 		case IR_CALL:
 			{
-				arg := []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+				//argreg := []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 				for i := 0; i < ir.nargs; i++ {
-					fmt.Printf("\tmov %s, %s\n", arg[i], regs[ir.args[i]])
+					fmt.Printf("\tmov %s, %s\n", argreg[i], regs[ir.args[i]])
 				}
 				fmt.Printf("\tpush r10\n")
 				fmt.Printf("\tpush r11\n")
@@ -68,6 +69,10 @@ func gen(fn *Function) {
 			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_STORE:
 			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_SAVE_ARGS:
+			for i := 0; i < ir.lhs; i++ {
+				fmt.Printf("\tmov [rbp-%d], %s\n", (i+1)*8, argreg[i])
+			}
 		case '+':
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case '-':
