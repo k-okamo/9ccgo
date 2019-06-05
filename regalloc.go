@@ -37,9 +37,8 @@ func visit(irv *Vector) {
 
 	for i := 0; i < irv.len; i++ {
 		ir := irv.data[i].(*IR)
-		info := get_irinfo(ir)
 
-		switch info.ty {
+		switch irinfo[ir.op].ty {
 		case IR_TY_REG, IR_TY_REG_IMM, IR_TY_REG_LABEL:
 			ir.lhs = alloc(ir.lhs)
 		case IR_TY_REG_REG:

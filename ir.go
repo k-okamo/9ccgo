@@ -13,25 +13,25 @@ var (
 	label     int
 )
 
-var irinfo = []IRInfo{
-	{op: IR_ADD, name: "ADD", ty: IR_TY_REG_REG},
-	{op: IR_SUB, name: "SUB", ty: IR_TY_REG_REG},
-	{op: IR_MUL, name: "MUL", ty: IR_TY_REG_REG},
-	{op: IR_DIV, name: "DIV", ty: IR_TY_REG_REG},
-	{op: IR_IMM, name: "MOV", ty: IR_TY_REG_IMM},
-	{op: IR_SUB_IMM, name: "SUB", ty: IR_TY_REG_IMM},
-	{op: IR_MOV, name: "MOV", ty: IR_TY_REG_REG},
-	{op: IR_LABEL, name: "", ty: IR_TY_LABEL},
-	{op: IR_JMP, name: "JMP", ty: IR_TY_LABEL},
-	{op: IR_UNLESS, name: "UNLESS", ty: IR_TY_REG_LABEL},
-	{op: IR_CALL, name: "CALL", ty: IR_TY_CALL},
-	{op: IR_RETURN, name: "RET", ty: IR_TY_REG},
-	{op: IR_LOAD, name: "LOAD", ty: IR_TY_REG_REG},
-	{op: IR_STORE, name: "STORE", ty: IR_TY_REG_REG},
-	{op: IR_KILL, name: "KILL", ty: IR_TY_REG},
-	{op: IR_SAVE_ARGS, name: "SAVE_ARGS", ty: IR_TY_IMM},
-	{op: IR_NOP, name: "NOP", ty: IR_TY_NOARG},
-	{op: 0, name: "", ty: 0},
+var irinfo = map[int]IRInfo{
+	IR_ADD:       {name: "ADD", ty: IR_TY_REG_REG},
+	IR_SUB:       {name: "SUB", ty: IR_TY_REG_REG},
+	IR_MUL:       {name: "MUL", ty: IR_TY_REG_REG},
+	IR_DIV:       {name: "DIV", ty: IR_TY_REG_REG},
+	IR_IMM:       {name: "MOV", ty: IR_TY_REG_IMM},
+	IR_SUB_IMM:   {name: "SUB", ty: IR_TY_REG_IMM},
+	IR_MOV:       {name: "MOV", ty: IR_TY_REG_REG},
+	IR_LABEL:     {name: "", ty: IR_TY_LABEL},
+	IR_JMP:       {name: "JMP", ty: IR_TY_LABEL},
+	IR_UNLESS:    {name: "UNLESS", ty: IR_TY_REG_LABEL},
+	IR_CALL:      {name: "CALL", ty: IR_TY_CALL},
+	IR_RETURN:    {name: "RET", ty: IR_TY_REG},
+	IR_LOAD:      {name: "LOAD", ty: IR_TY_REG_REG},
+	IR_STORE:     {name: "STORE", ty: IR_TY_REG_REG},
+	IR_KILL:      {name: "KILL", ty: IR_TY_REG},
+	IR_SAVE_ARGS: {name: "SAVE_ARGS", ty: IR_TY_IMM},
+	IR_NOP:       {name: "NOP", ty: IR_TY_NOARG},
+	0:            {name: "", ty: 0},
 }
 
 const (
@@ -77,7 +77,6 @@ type IR struct {
 }
 
 type IRInfo struct {
-	op   int
 	name string
 	ty   int
 }
@@ -88,19 +87,8 @@ type Function struct {
 	ir        *Vector
 }
 
-func get_irinfo(ir *IR) IRInfo {
-
-	for _, info := range irinfo {
-		if info.op == ir.op {
-			return info
-		}
-	}
-	// asset(0 && "invalid instruction")
-	return IRInfo{op: 0, name: "", ty: 0}
-}
-
 func tostr(ir *IR) string {
-	info := get_irinfo(ir)
+	info := irinfo[ir.op]
 	switch info.ty {
 	case IR_TY_LABEL:
 		return format(".L%d:\n", ir.lhs)
