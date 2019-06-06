@@ -45,7 +45,6 @@ func gen(fn *Function) {
 			fmt.Printf("\tjmp %s\n", ret)
 		case IR_CALL:
 			{
-				//argreg := []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 				for i := 0; i < ir.nargs; i++ {
 					fmt.Printf("\tmov %s, %s\n", argreg[i], regs[ir.args[i]])
 				}
@@ -60,6 +59,10 @@ func gen(fn *Function) {
 			}
 		case IR_LABEL:
 			fmt.Printf("\t.L%d:\n", ir.lhs)
+		case IR_LT:
+			fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tsetl %s\n", regs8[ir.lhs])
+			fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
 		case IR_JMP:
 			fmt.Printf("\tjmp .L%d\n", ir.lhs)
 		case IR_UNLESS:

@@ -58,7 +58,7 @@ loop:
 		}
 
 		// Single-letter token
-		if strchr("+-*/;=(),{}", c) != "" {
+		if strchr("+-*/;=(),{}<>", c) != "" {
 			add_token(v, int(c), s)
 			i++
 			s = s[1:]
@@ -173,6 +173,10 @@ func print_tokens(tokens *Vector) {
 			ty = "{        "
 		case '}':
 			ty = "}        "
+		case '<':
+			ty = "<        "
+		case '>':
+			ty = ">        "
 		default:
 			ty = "         "
 		}

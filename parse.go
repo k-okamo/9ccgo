@@ -133,15 +133,33 @@ func parse_add() *Node {
 	return lhs
 }
 
-func logand() *Node {
+func rel() *Node {
 	lhs := parse_add()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty == '<' {
+			pos++
+			lhs = new_node('<', lhs, parse_add())
+			continue
+		}
+		if t.ty == '>' {
+			pos++
+			lhs = new_node('<', parse_add(), lhs)
+			continue
+		}
+		return lhs
+	}
+}
+
+func logand() *Node {
+	lhs := rel()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != TK_LOGAND {
 			return lhs
 		}
 		pos++
-		lhs = new_node(ND_LOGAND, lhs, parse_add())
+		lhs = new_node(ND_LOGAND, lhs, rel())
 	}
 	return lhs
 }

@@ -2,6 +2,7 @@ package main
 
 var (
 	regs    = []string{"rbp", "r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
+	regs8   = []string{"rp1", "r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
 	used    [8]bool
 	reg_map []int
 )

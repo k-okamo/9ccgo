@@ -22,6 +22,7 @@ var irinfo = map[int]IRInfo{
 	IR_SUB_IMM:   {name: "SUB", ty: IR_TY_REG_IMM},
 	IR_MOV:       {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:     {name: "", ty: IR_TY_LABEL},
+	IR_LT:        {name: "LT", ty: IR_TY_REG_REG},
 	IR_JMP:       {name: "JMP", ty: IR_TY_JMP},
 	IR_UNLESS:    {name: "UNLESS", ty: IR_TY_REG_LABEL},
 	IR_CALL:      {name: "CALL", ty: IR_TY_CALL},
@@ -45,6 +46,7 @@ const (
 	IR_RETURN
 	IR_CALL
 	IR_LABEL
+	IR_LT
 	IR_JMP
 	IR_UNLESS
 	IR_LOAD
@@ -159,9 +161,15 @@ func gen_lval(node *Node) int {
 	return r
 }
 
+func gen_binop(ty int, lhs, rhs *Node) int {
+	r1, r2 := gen_expr(lhs), gen_expr(rhs)
+	add(ty, r1, r2)
+	add(IR_KILL, r2, -1)
+	return r1
+}
+
 func gen_expr(node *Node) int {
 
-	//if node.ty == ND_NUM {
 	switch node.ty {
 	case ND_NUM:
 		{
@@ -238,25 +246,21 @@ func gen_expr(node *Node) int {
 			add(IR_KILL, rhs, -1)
 			return lhs
 		}
+	case '+':
+		return gen_binop(IR_ADD, node.lhs, node.rhs)
+	case '-':
+		return gen_binop(IR_SUB, node.lhs, node.rhs)
+	case '*':
+		return gen_binop(IR_MUL, node.lhs, node.rhs)
+	case '/':
+		return gen_binop(IR_DIV, node.lhs, node.rhs)
+	case '<':
+		return gen_binop(IR_LT, node.lhs, node.rhs)
+	default:
+		//assert(0 && "unknown AST type")
 	}
-	// assert(strche("+-*/", node.ty))
 
-	var ty int
-	if node.ty == '+' {
-		ty = IR_ADD
-	} else if node.ty == '-' {
-		ty = IR_SUB
-	} else if node.ty == '*' {
-		ty = IR_MUL
-	} else {
-		ty = IR_DIV
-	}
-
-	lhs, rhs := gen_expr(node.lhs), gen_expr(node.rhs)
-
-	add(ty, lhs, rhs)
-	add(IR_KILL, rhs, -1)
-	return lhs
+	return 0
 }
 
 func gen_stmt(node *Node) {
@@ -351,7 +355,6 @@ func print_irs(fns *Vector) {
 	if !debug {
 		return
 	}
-	//irs := fns
 	fmt.Println("-- intermediate reprensetations --")
 	for i := 0; i < fns.len; i++ {
 		fn := fns.data[i].(*Function)
@@ -369,6 +372,8 @@ func print_irs(fns *Vector) {
 				op = "IR_RETURN   "
 			case IR_LABEL:
 				op = "IR_LABEL    "
+			case IR_LT:
+				op = "IR_LT       "
 			case IR_JMP:
 				op = "IR_JMP      "
 			case IR_UNLESS:
