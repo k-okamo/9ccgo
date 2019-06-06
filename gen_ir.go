@@ -22,7 +22,7 @@ var irinfo = map[int]IRInfo{
 	IR_SUB_IMM:   {name: "SUB", ty: IR_TY_REG_IMM},
 	IR_MOV:       {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:     {name: "", ty: IR_TY_LABEL},
-	IR_JMP:       {name: "JMP", ty: IR_TY_LABEL},
+	IR_JMP:       {name: "JMP", ty: IR_TY_JMP},
 	IR_UNLESS:    {name: "UNLESS", ty: IR_TY_REG_LABEL},
 	IR_CALL:      {name: "CALL", ty: IR_TY_CALL},
 	IR_RETURN:    {name: "RET", ty: IR_TY_REG},
@@ -58,6 +58,7 @@ const (
 	IR_TY_NOARG = iota + 256
 	IR_TY_REG
 	IR_TY_IMM
+	IR_TY_JMP
 	IR_TY_LABEL
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
@@ -91,17 +92,19 @@ func tostr(ir *IR) string {
 	info := irinfo[ir.op]
 	switch info.ty {
 	case IR_TY_LABEL:
-		return format(".L%d:\n", ir.lhs)
+		return format(".L%d:", ir.lhs)
 	case IR_TY_IMM:
-		return format("%s %d\n", info.name, ir.lhs)
+		return format("\t%s %d", info.name, ir.lhs)
 	case IR_TY_REG:
-		return format("%s r%d\n", info.name, ir.lhs)
+		return format("\t%s r%d", info.name, ir.lhs)
+	case IR_TY_JMP:
+		return format("\t%s r%d", info.name, ir.lhs)
 	case IR_TY_REG_REG:
-		return format("%s r%d, r%d\n", info.name, ir.lhs, ir.rhs)
+		return format("\t%s r%d, r%d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_IMM:
-		return format("%s r%d, %d\n", info.name, ir.lhs, ir.rhs)
+		return format("\t%s r%d, %d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_LABEL:
-		return format("%s r%d, .L%d\n", info.name, ir.lhs, ir.rhs)
+		return format("\t%s r%d, .L%d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_CALL:
 		{
 			sb := new_sb()
@@ -114,7 +117,7 @@ func tostr(ir *IR) string {
 		}
 	default:
 		//asset(info.ty == IR_TY_NOARG)
-		return format("%s\n", info.name)
+		return format("\t%s", info.name)
 	}
 	return ""
 }
@@ -124,7 +127,7 @@ func dump_ir(irv *Vector) {
 		fn := irv.data[i].(*Function)
 		fmt.Fprintf(os.Stderr, "%s():\n", fn.name)
 		for j := 0; j < fn.ir.len; j++ {
-			fmt.Fprintf(os.Stderr, " %s", tostr(fn.ir.data[j].(*IR)))
+			fmt.Fprintf(os.Stderr, "%s\n", tostr(fn.ir.data[j].(*IR)))
 		}
 	}
 }
@@ -158,44 +161,83 @@ func gen_lval(node *Node) int {
 
 func gen_expr(node *Node) int {
 
-	if node.ty == ND_NUM {
-		r := regno
-		regno++
-		add(IR_IMM, r, node.val)
-		return r
-	}
-
-	if node.ty == ND_IDENT {
-		r := gen_lval(node)
-		add(IR_LOAD, r, r)
-		return r
-	}
-
-	if node.ty == ND_CALL {
-		var args [6]int
-		for i := 0; i < node.args.len; i++ {
-			args[i] = gen_expr(node.args.data[i].(*Node))
+	//if node.ty == ND_NUM {
+	switch node.ty {
+	case ND_NUM:
+		{
+			r := regno
+			regno++
+			add(IR_IMM, r, node.val)
+			return r
 		}
-		r := regno
-		regno++
-
-		ir := add(IR_CALL, r, -1)
-		ir.name = node.name
-		ir.nargs = node.args.len
-		for i := 0; i < 6; i++ {
-			ir.args[i] = args[i]
+	case ND_LOGAND:
+		{
+			x := label
+			label++
+			r1 := gen_expr(node.lhs)
+			add(IR_UNLESS, r1, x)
+			r2 := gen_expr(node.rhs)
+			add(IR_MOV, r1, r2)
+			add(IR_KILL, r2, -1)
+			add(IR_UNLESS, r1, x)
+			add(IR_IMM, r1, 1)
+			add(IR_LABEL, x, -1)
+			return r1
 		}
-		for i := 0; i < ir.nargs; i++ {
-			add(IR_KILL, ir.args[i], -1)
+	case ND_LOGOR:
+		{
+			x := label
+			label++
+			y := label
+			label++
+			r1 := gen_expr(node.lhs)
+			add(IR_UNLESS, r1, x)
+			add(IR_IMM, r1, 1)
+			add(IR_JMP, y, -1)
+			add(IR_LABEL, x, -1)
+			r2 := gen_expr(node.rhs)
+			add(IR_MOV, r1, r2)
+			add(IR_KILL, r2, -1)
+			add(IR_UNLESS, r1, y)
+			add(IR_IMM, r1, 1)
+			add(IR_LABEL, y, -1)
+			return r1
 		}
-		return r
-	}
+	case ND_IDENT:
+		{
+			r := gen_lval(node)
+			add(IR_LOAD, r, r)
+			return r
+		}
 
-	if node.ty == '=' {
-		rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
-		add(IR_STORE, lhs, rhs)
-		add(IR_KILL, rhs, -1)
-		return lhs
+	case ND_CALL:
+		{
+			var args [6]int
+			for i := 0; i < node.args.len; i++ {
+				args[i] = gen_expr(node.args.data[i].(*Node))
+			}
+			r := regno
+			regno++
+
+			ir := add(IR_CALL, r, -1)
+			ir.name = node.name
+			ir.nargs = node.args.len
+			for i := 0; i < 6; i++ {
+				ir.args[i] = args[i]
+			}
+			for i := 0; i < ir.nargs; i++ {
+				add(IR_KILL, ir.args[i], -1)
+			}
+			return r
+		}
+
+	case '=':
+		{
+			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
+			add(IR_STORE, lhs, rhs)
+			add(IR_KILL, rhs, -1)
+			return lhs
+		}
 	}
 	// assert(strche("+-*/", node.ty))
 
@@ -305,51 +347,55 @@ func gen_ir(nodes *Vector) *Vector {
 }
 
 // [Debug] intermediate reprensations
-func print_irs(irs *Vector) {
+func print_irs(fns *Vector) {
 	if !debug {
 		return
 	}
+	//irs := fns
 	fmt.Println("-- intermediate reprensetations --")
-	for i := 0; i < irs.len; i++ {
-		ir := irs.data[i].(*IR)
-		op := ""
-		switch ir.op {
-		case IR_IMM:
-			op = "IR_IMM      "
-		case IR_SUB_IMM:
-			op = "IR_SUB_IMM  "
-		case IR_MOV:
-			op = "IR_MOV      "
-		case IR_RETURN:
-			op = "IR_RETURN   "
-		case IR_LABEL:
-			op = "IR_LABEL    "
-		case IR_JMP:
-			op = "IR_JMP      "
-		case IR_UNLESS:
-			op = "IR_UNLESS   "
-		case IR_LOAD:
-			op = "IR_LOAD     "
-		case IR_STORE:
-			op = "IR_STORE    "
-		case IR_KILL:
-			op = "IR_KILL     "
-		case IR_SAVE_ARGS:
-			op = "IR_SAVE_ARGS"
-		case IR_NOP:
-			op = "IR_NOP      "
-		case IR_ADD:
-			op = "IR_ADD      "
-		case IR_SUB:
-			op = "IR_SUB      "
-		case IR_MUL:
-			op = "IR_MUL      "
-		case IR_DIV:
-			op = "IR_DIV      "
-		default:
-			op = "            "
+	for i := 0; i < fns.len; i++ {
+		fn := fns.data[i].(*Function)
+		for j := 0; j < fn.ir.len; j++ {
+			ir := fn.ir.data[j].(*IR)
+			op := ""
+			switch ir.op {
+			case IR_IMM:
+				op = "IR_IMM      "
+			case IR_SUB_IMM:
+				op = "IR_SUB_IMM  "
+			case IR_MOV:
+				op = "IR_MOV      "
+			case IR_RETURN:
+				op = "IR_RETURN   "
+			case IR_LABEL:
+				op = "IR_LABEL    "
+			case IR_JMP:
+				op = "IR_JMP      "
+			case IR_UNLESS:
+				op = "IR_UNLESS   "
+			case IR_LOAD:
+				op = "IR_LOAD     "
+			case IR_STORE:
+				op = "IR_STORE    "
+			case IR_KILL:
+				op = "IR_KILL     "
+			case IR_SAVE_ARGS:
+				op = "IR_SAVE_ARGS"
+			case IR_NOP:
+				op = "IR_NOP      "
+			case IR_ADD:
+				op = "IR_ADD      "
+			case IR_SUB:
+				op = "IR_SUB      "
+			case IR_MUL:
+				op = "IR_MUL      "
+			case IR_DIV:
+				op = "IR_DIV      "
+			default:
+				op = "            "
+			}
+			fmt.Printf("[%02d:%02d] op: %s, lhs: %d, rhs: %d\n", i, j, op, ir.lhs, ir.rhs)
 		}
-		fmt.Printf("[%02d] op: %s, lhs: %d, rhs: %d\n", i, op, ir.lhs, ir.rhs)
 	}
 	fmt.Println("")
 }

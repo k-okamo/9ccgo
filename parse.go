@@ -8,6 +8,8 @@ const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_IDENT                  // Identigier
 	ND_IF                     // "if"
+	ND_LOGOR                  // ||
+	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
 	ND_CALL                   // Function call
 	ND_FUNC                   // Function definition
@@ -108,35 +110,59 @@ func mul() *Node {
 	lhs := term()
 	for {
 		t := tokens.data[pos].(*Token)
-		op := t.ty
-		if op != '*' && op != '/' {
+		if t.ty != '*' && t.ty != '/' {
 			return lhs
 		}
 		pos++
-		lhs = new_node(op, lhs, term())
+		lhs = new_node(t.ty, lhs, term())
 	}
 	return lhs
 }
 
-func expr() *Node {
+func parse_add() *Node {
 
 	lhs := mul()
 	for {
 		t := tokens.data[pos].(*Token)
-		op := t.ty
-		if op != '+' && op != '-' {
+		if t.ty != '+' && t.ty != '-' {
 			return lhs
 		}
 		pos++
-		lhs = new_node(op, lhs, mul())
+		lhs = new_node(t.ty, lhs, mul())
+	}
+	return lhs
+}
+
+func logand() *Node {
+	lhs := parse_add()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty != TK_LOGAND {
+			return lhs
+		}
+		pos++
+		lhs = new_node(ND_LOGAND, lhs, parse_add())
+	}
+	return lhs
+}
+
+func logor() *Node {
+	lhs := logand()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty != TK_LOGOR {
+			return lhs
+		}
+		pos++
+		lhs = new_node(ND_LOGOR, lhs, logand())
 	}
 	return lhs
 }
 
 func assign() *Node {
-	lhs := expr()
+	lhs := logor()
 	if consume('=') {
-		return new_node('=', lhs, expr())
+		return new_node('=', lhs, logor())
 	}
 	return lhs
 }

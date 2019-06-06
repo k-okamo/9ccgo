@@ -40,7 +40,7 @@ func main() {
 	print_tokens(tokens) // Debug
 	fns := gen_ir(parse(tokens))
 
-	//print_irs(irv) // Debug
+	print_irs(fns) // Debug
 	if dump_ir1 {
 		dump_ir(fns)
 	}

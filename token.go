@@ -8,6 +8,7 @@ import (
 var (
 	tokens   *Vector
 	keywords *Map
+	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND}, {name: "||", ty: TK_LOGOR}}
 )
 
 const (
@@ -15,6 +16,8 @@ const (
 	TK_IDENT               // Identifier
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
+	TK_LOGOR               // ||
+	TK_LOGAND              // &&
 	TK_RETURN              // "return"
 	TK_EOF                 // End marker
 )
@@ -25,6 +28,11 @@ type Token struct {
 	val   int    // Number literal
 	name  string // Identifier
 	input string // Token string (for error reporting)
+}
+
+type Keyword struct {
+	name string
+	ty   int
 }
 
 func add_token(v *Vector, ty int, input string) *Token {
@@ -39,6 +47,8 @@ func scan(s string) *Vector {
 
 	v := new_vec()
 	i := 0
+
+loop:
 	for len(s) != 0 {
 		// Skip whitespace
 		c := []rune(s)[0]
@@ -53,6 +63,17 @@ func scan(s string) *Vector {
 			i++
 			s = s[1:]
 			continue
+		}
+
+		// Multi-letter token
+		for _, sym := range symbols {
+			length := len(sym.name)
+			if sym.name != s[:length] {
+				continue
+			}
+			add_token(v, sym.ty, s)
+			s = s[length:]
+			continue loop
 		}
 
 		// Identifier
@@ -128,10 +149,30 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_ELSE  "
 		case TK_RETURN:
 			ty = "TK_RETURN"
+		case TK_LOGOR:
+			ty = "TK_LOGOR "
+		case TK_LOGAND:
+			ty = "TK_LOGAND"
 		case TK_EOF:
 			ty = "TK_EOF   "
 		case ';':
 			ty = ";        "
+		case '+':
+			ty = "+        "
+		case '-':
+			ty = "-        "
+		case '*':
+			ty = "*        "
+		case '/':
+			ty = "/        "
+		case '(':
+			ty = "(        "
+		case ')':
+			ty = ")        "
+		case '{':
+			ty = "{        "
+		case '}':
+			ty = "}        "
 		default:
 			ty = "         "
 		}
