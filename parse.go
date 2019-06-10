@@ -59,6 +59,11 @@ func consume(ty int) bool {
 	return true
 }
 
+func is_typename() bool {
+	t := tokens.data[pos].(*Token)
+	return t.ty == TK_INT
+}
+
 func new_node(op int, lhs, rhs *Node) *Node {
 	node := new(Node)
 	node.ty = op
@@ -188,26 +193,40 @@ func assign() *Node {
 	return lhs
 }
 
+func decl() *Node {
+	node := new(Node)
+	node.ty = ND_VARDEF
+	pos++
+
+	t := tokens.data[pos].(*Token)
+	if t.ty != TK_IDENT {
+		error("variable name expected, but got %s", t.input)
+	}
+	node.name = t.name
+	pos++
+
+	if consume('=') {
+		node.init = assign()
+	}
+	expect(';')
+	return node
+}
+
+func expr_stmt() *Node {
+	node := new(Node)
+	node.ty = ND_EXPR_STMT
+	node.expr = assign()
+	expect(';')
+	return node
+}
+
 func stmt() *Node {
 	node := new(Node)
 	t := tokens.data[pos].(*Token)
 
 	switch t.ty {
 	case TK_INT:
-		pos++
-		node.ty = ND_VARDEF
-		t = tokens.data[pos].(*Token)
-		if t.ty != TK_IDENT {
-			error("variable name expected, but got %s", t.input)
-		}
-		node.name = t.name
-		pos++
-
-		if consume('=') {
-			node.init = assign()
-		}
-		expect(';')
-		return node
+		return decl()
 	case TK_IF:
 		pos++
 		node.ty = ND_IF
@@ -225,8 +244,11 @@ func stmt() *Node {
 		pos++
 		node.ty = ND_FOR
 		expect('(')
-		node.init = assign()
-		expect(';')
+		if is_typename() {
+			node.init = decl()
+		} else {
+			node.init = expr_stmt()
+		}
 		node.cond = assign()
 		expect(';')
 		node.inc = assign()
@@ -248,10 +270,7 @@ func stmt() *Node {
 		}
 		return node
 	default:
-		node.ty = ND_EXPR_STMT
-		node.expr = assign()
-		expect(';')
-		return node
+		return expr_stmt()
 	}
 	return nil
 }

@@ -312,7 +312,7 @@ func gen_stmt(node *Node) {
 		y := label
 		label++
 
-		add(IR_KILL, gen_expr(node.init), -1)
+		gen_stmt(node.init)
 		add(IR_LABEL, x, -1)
 		r := gen_expr(node.cond)
 		add(IR_UNLESS, r, y)
