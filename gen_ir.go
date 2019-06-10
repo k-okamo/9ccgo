@@ -284,26 +284,28 @@ func gen_stmt(node *Node) {
 	}
 
 	if node.ty == ND_IF {
-		r := gen_expr(node.cond)
+
+		if node.els != nil {
+			x := label
+			label++
+			y := label
+			label++
+			r := gen_expr(node.cond)
+			add(IR_UNLESS, r, x)
+			add(IR_KILL, r, -1)
+			gen_stmt(node.then)
+			add(IR_JMP, y, -1)
+			add(IR_LABEL, x, -1)
+			gen_stmt(node.els)
+			add(IR_LABEL, y, -1)
+		}
 		x := label
 		label++
-
+		r := gen_expr(node.cond)
 		add(IR_UNLESS, r, x)
 		add(IR_KILL, r, -1)
-
 		gen_stmt(node.then)
-
-		if node.els == nil {
-			add(IR_LABEL, x, -1)
-			return
-		}
-
-		y := label
-		label++
-		add(IR_JMP, y, -1)
 		add(IR_LABEL, x, -1)
-		gen_stmt(node.els)
-		add(IR_LABEL, y, -1)
 		return
 	}
 	if node.ty == ND_FOR {
