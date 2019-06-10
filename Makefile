@@ -5,6 +5,7 @@ SRCS=$(wildcard *.go)
 	go build -gcflags '-N -l' -o 9ccgo $(SRCS)
 	
 test: 9ccgo
+	go test -v $(SRCS)
 	./9ccgo -test
 	./test.sh
 

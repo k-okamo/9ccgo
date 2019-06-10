@@ -8,6 +8,7 @@ const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_IDENT                  // Identigier
 	ND_IF                     // "if"
+	ND_FOR                    // "for"
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
@@ -27,13 +28,14 @@ type Node struct {
 
 	name string // Identifier
 
-	// "if"
+	// "if" ( cond ) then "else" els
+	// "for" ( init; cond; inc ) body
 	cond *Node
 	then *Node
 	els  *Node
-
-	// Function definition
+	init *Node
 	body *Node
+	inc  *Node
 
 	// Function call
 	args *Vector
@@ -202,6 +204,18 @@ func stmt() *Node {
 		if consume(TK_ELSE) {
 			node.els = stmt()
 		}
+		return node
+	case TK_FOR:
+		pos++
+		node.ty = ND_FOR
+		expect('(')
+		node.init = assign()
+		expect(';')
+		node.cond = assign()
+		expect(';')
+		node.inc = assign()
+		expect(')')
+		node.body = stmt()
 		return node
 	case TK_RETURN:
 		pos++

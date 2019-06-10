@@ -146,6 +146,23 @@ func strndup(s string, size int) string {
 	return s[:size]
 }
 
+func strncmp(s1, s2 string, n int) int {
+	if n == 0 || s1 == s2 {
+		return 0
+	}
+	switch {
+	case s1 == "":
+		return -1
+	case s2 == "":
+		return 1
+	case s1[:1] > s2[:1]:
+		return 1
+	case s1[:1] < s2[:1]:
+		return -1
+	}
+	return strncmp(s1[1:], s2[1:], n-1)
+}
+
 func IsAlpha(c rune) bool {
 	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
 }

@@ -8,7 +8,9 @@ import (
 var (
 	tokens   *Vector
 	keywords *Map
-	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND}, {name: "||", ty: TK_LOGOR}}
+	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND}, {name: "||", ty: TK_LOGOR},
+		{name: "else", ty: TK_ELSE}, {name: "for", ty: TK_FOR},
+		{name: "if", ty: TK_IF}, {name: "return", ty: TK_RETURN}}
 )
 
 const (
@@ -16,6 +18,7 @@ const (
 	TK_IDENT               // Identifier
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
+	TK_FOR                 // "for"
 	TK_LOGOR               // ||
 	TK_LOGAND              // &&
 	TK_RETURN              // "return"
@@ -68,7 +71,10 @@ loop:
 		// Multi-letter token
 		for _, sym := range symbols {
 			length := len(sym.name)
-			if sym.name != s[:length] {
+			if length > len(s) {
+				length = len(s)
+			}
+			if strncmp(s, sym.name, length) != 0 {
 				continue
 			}
 			add_token(v, sym.ty, s)
@@ -90,14 +96,8 @@ loop:
 				}
 				length++
 			}
-			name := strndup(s, length)
-			ty := map_get(keywords, name).(int)
-			if ty == 0 {
-				ty = TK_IDENT
-			}
-
-			t := add_token(v, ty, s)
-			t.name = name
+			t := add_token(v, TK_IDENT, s)
+			t.name = strndup(s, length)
 			i++
 			s = s[length:]
 			continue
@@ -121,11 +121,6 @@ loop:
 }
 
 func tokenize(s string) *Vector {
-	keywords = new_map()
-	map_put(keywords, "if", TK_IF)
-	map_put(keywords, "else", TK_ELSE)
-	map_put(keywords, "return", TK_RETURN)
-
 	return scan(s)
 }
 
@@ -147,6 +142,8 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_IF    "
 		case TK_ELSE:
 			ty = "TK_ELSE  "
+		case TK_FOR:
+			ty = "TK_FOR   "
 		case TK_RETURN:
 			ty = "TK_RETURN"
 		case TK_LOGOR:

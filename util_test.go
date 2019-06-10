@@ -42,3 +42,27 @@ func Test_strndup(t *testing.T) {
 		}
 	}
 }
+
+func Test_strncmp(t *testing.T) {
+	cases := []struct {
+		s1  string
+		s2  string
+		n   int
+		ret int
+	}{
+		{"ABC", "ABD", 2, 0},
+		{"ABC", "ABC", 2, 0},
+		{"ABC", "AAA", 2, 1},
+		{"ABC", "ABCD", 2, 0},
+		{"ABC", "AB", 2, 0},
+		{"ABC", "B", 2, -1},
+		{"ABC", "A", 2, 1},
+	}
+
+	for _, c := range cases {
+		ret := strncmp(c.s1, c.s2, c.n)
+		if ret != c.ret {
+			t.Errorf("s1: %s, s2: %s, n: %d, expecred %d, got: %d\n", c.s1, c.s2, c.n, c.ret, ret)
+		}
+	}
+}

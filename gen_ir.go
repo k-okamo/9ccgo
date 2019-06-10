@@ -288,6 +288,23 @@ func gen_stmt(node *Node) {
 		add(IR_LABEL, y, -1)
 		return
 	}
+	if node.ty == ND_FOR {
+		x := label
+		label++
+		y := label
+		label++
+
+		add(IR_KILL, gen_expr(node.init), -1)
+		add(IR_LABEL, x, -1)
+		r := gen_expr(node.cond)
+		add(IR_UNLESS, r, y)
+		add(IR_KILL, r, -1)
+		gen_stmt(node.body)
+		add(IR_KILL, gen_expr(node.inc), -1)
+		add(IR_JMP, x, -1)
+		add(IR_LABEL, y, -1)
+		return
+	}
 	if node.ty == ND_RETURN {
 		r := gen_expr(node.expr)
 		add(IR_RETURN, r, -1)
