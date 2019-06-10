@@ -202,6 +202,10 @@ func stmt() *Node {
 		}
 		node.name = t.name
 		pos++
+
+		if consume('=') {
+			node.init = assign()
+		}
 		expect(';')
 		return node
 	case TK_IF:

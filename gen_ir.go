@@ -267,6 +267,19 @@ func gen_stmt(node *Node) {
 	if node.ty == ND_VARDEF {
 		stacksize += 8
 		map_put(vars, node.name, stacksize)
+
+		if node.init == nil {
+			return
+		}
+
+		rhs := gen_expr(node.init)
+		lhs := regno
+		regno++
+		add(IR_MOV, lhs, 0)
+		add(IR_SUB_IMM, lhs, stacksize)
+		add(IR_STORE, lhs, rhs)
+		add(IR_KILL, lhs, -1)
+		add(IR_KILL, rhs, -1)
 		return
 	}
 
