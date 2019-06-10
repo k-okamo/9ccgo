@@ -26,11 +26,6 @@ func alloc(ir_reg int) int {
 	return -1
 }
 
-func kill(r int) {
-	//assert(used[r])
-	used[r] = false
-}
-
 func visit(irv *Vector) {
 	// r0 is a reserved register that is always mapped to rbp.
 	reg_map[0] = 0
@@ -53,7 +48,8 @@ func visit(irv *Vector) {
 		}
 
 		if ir.op == IR_KILL {
-			kill(reg_map[ir.lhs])
+			//assert(used[ir.lhs])
+			used[ir.lhs] = false
 			ir.op = IR_NOP
 		}
 	}
