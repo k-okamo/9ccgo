@@ -7,6 +7,7 @@ var (
 const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_IDENT                  // Identigier
+	ND_VARDEF                 // Variable definition
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
 	ND_LOGOR                  // ||
@@ -192,6 +193,17 @@ func stmt() *Node {
 	t := tokens.data[pos].(*Token)
 
 	switch t.ty {
+	case TK_INT:
+		pos++
+		node.ty = ND_VARDEF
+		t = tokens.data[pos].(*Token)
+		if t.ty != TK_IDENT {
+			error("variable name expected, but got %s", t.input)
+		}
+		node.name = t.name
+		pos++
+		expect(';')
+		return node
 	case TK_IF:
 		pos++
 		node.ty = ND_IF
@@ -258,6 +270,11 @@ func function() *Node {
 	node.args = new_vec()
 
 	t := tokens.data[pos].(*Token)
+	if t.ty != TK_INT {
+		error("function return type expected, but got %s", t.input)
+	}
+	pos++
+	t = tokens.data[pos].(*Token)
 	if t.ty != TK_IDENT {
 		error("function name expected, but got %s", t.input)
 	}

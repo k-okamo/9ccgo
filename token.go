@@ -10,12 +10,14 @@ var (
 	keywords *Map
 	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND}, {name: "||", ty: TK_LOGOR},
 		{name: "else", ty: TK_ELSE}, {name: "for", ty: TK_FOR},
-		{name: "if", ty: TK_IF}, {name: "return", ty: TK_RETURN}}
+		{name: "if", ty: TK_IF}, {name: "return", ty: TK_RETURN},
+		{name: "int", ty: TK_INT}}
 )
 
 const (
 	TK_NUM    = iota + 256 // Number literal
 	TK_IDENT               // Identifier
+	TK_INT                 // "int"
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
 	TK_FOR                 // "for"
@@ -138,6 +140,8 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_NUM   "
 		case TK_IDENT:
 			ty = "TK_IDENT "
+		case TK_INT:
+			ty = "TK_INT   "
 		case TK_IF:
 			ty = "TK_IF    "
 		case TK_ELSE:

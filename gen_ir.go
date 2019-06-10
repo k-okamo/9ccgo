@@ -149,8 +149,7 @@ func gen_lval(node *Node) int {
 	}
 
 	if !map_exists(vars, node.name) {
-		stacksize += 8
-		map_put(vars, node.name, stacksize)
+		error("undefined variable: %s", node.name)
 	}
 
 	r := regno
@@ -264,6 +263,12 @@ func gen_expr(node *Node) int {
 }
 
 func gen_stmt(node *Node) {
+
+	if node.ty == ND_VARDEF {
+		stacksize += 8
+		map_put(vars, node.name, stacksize)
+		return
+	}
 
 	if node.ty == ND_IF {
 		r := gen_expr(node.cond)
