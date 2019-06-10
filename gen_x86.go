@@ -17,8 +17,8 @@ func gen_label() string {
 
 func gen(fn *Function) {
 
-	ret := format(".Lend%d", label)
-	label++
+	ret := format(".Lend%d", nlabel)
+	nlabel++
 
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)

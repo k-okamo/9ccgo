@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	code  *Vector
-	regno int
-	label int
+	code   *Vector
+	nreg   int
+	nlabel int
 )
 
 var irinfo = map[int]IRInfo{
@@ -141,13 +141,21 @@ func add(op, lhs, rhs int) *IR {
 	return ir
 }
 
+func kill(r int) {
+	add(IR_KILL, r, -1)
+}
+
+func label(x int) {
+	add(IR_LABEL, x, -1)
+}
+
 func gen_lval(node *Node) int {
 	if node.ty != ND_LVAR {
 		error("not an lvalue: %d (%s)", node.ty, node.name)
 	}
 
-	r := regno
-	regno++
+	r := nreg
+	nreg++
 	add(IR_MOV, r, 0)
 	add(IR_SUB_IMM, r, node.offset)
 	return r
@@ -156,7 +164,7 @@ func gen_lval(node *Node) int {
 func gen_binop(ty int, lhs, rhs *Node) int {
 	r1, r2 := gen_expr(lhs), gen_expr(rhs)
 	add(ty, r1, r2)
-	add(IR_KILL, r2, -1)
+	kill(r2)
 	return r1
 }
 
@@ -165,42 +173,42 @@ func gen_expr(node *Node) int {
 	switch node.ty {
 	case ND_NUM:
 		{
-			r := regno
-			regno++
+			r := nreg
+			nreg++
 			add(IR_IMM, r, node.val)
 			return r
 		}
 	case ND_LOGAND:
 		{
-			x := label
-			label++
+			x := nlabel
+			nlabel++
 			r1 := gen_expr(node.lhs)
 			add(IR_UNLESS, r1, x)
 			r2 := gen_expr(node.rhs)
 			add(IR_MOV, r1, r2)
-			add(IR_KILL, r2, -1)
+			kill(r2)
 			add(IR_UNLESS, r1, x)
 			add(IR_IMM, r1, 1)
-			add(IR_LABEL, x, -1)
+			label(x)
 			return r1
 		}
 	case ND_LOGOR:
 		{
-			x := label
-			label++
-			y := label
-			label++
+			x := nlabel
+			nlabel++
+			y := nlabel
+			nlabel++
 			r1 := gen_expr(node.lhs)
 			add(IR_UNLESS, r1, x)
 			add(IR_IMM, r1, 1)
 			add(IR_JMP, y, -1)
-			add(IR_LABEL, x, -1)
+			label(x)
 			r2 := gen_expr(node.rhs)
 			add(IR_MOV, r1, r2)
-			add(IR_KILL, r2, -1)
+			kill(r2)
 			add(IR_UNLESS, r1, y)
 			add(IR_IMM, r1, 1)
-			add(IR_LABEL, y, -1)
+			label(y)
 			return r1
 		}
 	case ND_LVAR:
@@ -216,8 +224,8 @@ func gen_expr(node *Node) int {
 			for i := 0; i < node.args.len; i++ {
 				args[i] = gen_expr(node.args.data[i].(*Node))
 			}
-			r := regno
-			regno++
+			r := nreg
+			nreg++
 
 			ir := add(IR_CALL, r, -1)
 			ir.name = node.name
@@ -226,7 +234,7 @@ func gen_expr(node *Node) int {
 				ir.args[i] = args[i]
 			}
 			for i := 0; i < ir.nargs; i++ {
-				add(IR_KILL, ir.args[i], -1)
+				kill(ir.args[i])
 			}
 			return r
 		}
@@ -235,7 +243,7 @@ func gen_expr(node *Node) int {
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
 			add(IR_STORE, lhs, rhs)
-			add(IR_KILL, rhs, -1)
+			kill(rhs)
 			return lhs
 		}
 	case '+':
@@ -262,67 +270,66 @@ func gen_stmt(node *Node) {
 			return
 		}
 		rhs := gen_expr(node.init)
-		lhs := regno
-		regno++
+		lhs := nreg
+		nreg++
 		add(IR_MOV, lhs, 0)
 		add(IR_SUB_IMM, lhs, node.offset)
 		add(IR_STORE, lhs, rhs)
-		add(IR_KILL, lhs, -1)
-		add(IR_KILL, rhs, -1)
+		kill(lhs)
+		kill(rhs)
 		return
 	}
 
 	if node.ty == ND_IF {
 
 		if node.els != nil {
-			x := label
-			label++
-			y := label
-			label++
+			x := nlabel
+			nlabel++
+			y := nlabel
+			nlabel++
 			r := gen_expr(node.cond)
 			add(IR_UNLESS, r, x)
-			add(IR_KILL, r, -1)
+			kill(r)
 			gen_stmt(node.then)
 			add(IR_JMP, y, -1)
-			add(IR_LABEL, x, -1)
+			label(x)
 			gen_stmt(node.els)
-			add(IR_LABEL, y, -1)
+			label(y)
 		}
-		x := label
-		label++
+		x := nlabel
+		nlabel++
 		r := gen_expr(node.cond)
 		add(IR_UNLESS, r, x)
-		add(IR_KILL, r, -1)
+		kill(r)
 		gen_stmt(node.then)
-		add(IR_LABEL, x, -1)
+		label(x)
 		return
 	}
 	if node.ty == ND_FOR {
-		x := label
-		label++
-		y := label
-		label++
+		x := nlabel
+		nlabel++
+		y := nlabel
+		nlabel++
 
 		gen_stmt(node.init)
 		add(IR_LABEL, x, -1)
 		r := gen_expr(node.cond)
 		add(IR_UNLESS, r, y)
-		add(IR_KILL, r, -1)
+		kill(r)
 		gen_stmt(node.body)
-		add(IR_KILL, gen_expr(node.inc), -1)
+		kill(gen_expr(node.inc))
 		add(IR_JMP, x, -1)
-		add(IR_LABEL, y, -1)
+		label(y)
 		return
 	}
 	if node.ty == ND_RETURN {
 		r := gen_expr(node.expr)
 		add(IR_RETURN, r, -1)
-		add(IR_KILL, r, -1)
+		kill(r)
 		return
 	}
 	if node.ty == ND_EXPR_STMT {
-		r := gen_expr(node.expr)
-		add(IR_KILL, r, -1)
+		kill(gen_expr(node.expr))
 		return
 	}
 	if node.ty == ND_COMP_STMT {
@@ -342,7 +349,7 @@ func gen_ir(nodes *Vector) *Vector {
 		//assert(node.ty == ND_FUNC)
 
 		code = new_vec()
-		regno = 1
+		nreg = 1
 
 		if nodes.len > 0 {
 			add(IR_SAVE_ARGS, node.args.len, -1)
