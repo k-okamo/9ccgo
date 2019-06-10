@@ -38,7 +38,9 @@ func main() {
 	// Tokenize and parse.
 	tokens = tokenize(input)
 	print_tokens(tokens) // Debug
-	fns := gen_ir(parse(tokens))
+	nodes := parse(tokens)
+	sema(nodes)
+	fns := gen_ir(nodes)
 
 	print_irs(fns) // Debug
 	if dump_ir1 {

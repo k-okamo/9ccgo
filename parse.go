@@ -8,6 +8,7 @@ const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_IDENT                  // Identigier
 	ND_VARDEF                 // Variable definition
+	ND_LVAR                   // Variable reference
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
 	ND_LOGOR                  // ||
@@ -37,6 +38,12 @@ type Node struct {
 	init *Node
 	body *Node
 	inc  *Node
+
+	// Function definition
+	stacksize int
+
+	// Local variable
+	offset int
 
 	// Function call
 	args *Vector
@@ -212,6 +219,20 @@ func decl() *Node {
 	return node
 }
 
+func param() *Node {
+	node := new(Node)
+	node.ty = ND_VARDEF
+	pos++
+
+	t := tokens.data[pos].(*Token)
+	if t.ty != TK_IDENT {
+		error("parameter name expected, but got %s", t.input)
+	}
+	node.name = t.name
+	pos++
+	return node
+}
+
 func expr_stmt() *Node {
 	node := new(Node)
 	node.ty = ND_EXPR_STMT
@@ -306,9 +327,9 @@ func function() *Node {
 
 	expect('(')
 	if !consume(')') {
-		vec_push(node.args, term())
+		vec_push(node.args, param())
 		for consume(',') {
-			vec_push(node.args, term())
+			vec_push(node.args, param())
 		}
 		expect(')')
 	}

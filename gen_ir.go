@@ -6,11 +6,9 @@ import (
 )
 
 var (
-	code      *Vector
-	vars      *Map
-	regno     int
-	stacksize int
-	label     int
+	code  *Vector
+	regno int
+	label int
 )
 
 var irinfo = map[int]IRInfo{
@@ -144,19 +142,14 @@ func add(op, lhs, rhs int) *IR {
 }
 
 func gen_lval(node *Node) int {
-	if node.ty != ND_IDENT {
-		error("not a lvalue")
-	}
-
-	if !map_exists(vars, node.name) {
-		error("undefined variable: %s", node.name)
+	if node.ty != ND_LVAR {
+		error("not an lvalue: %d (%s)", node.ty, node.name)
 	}
 
 	r := regno
 	regno++
-	off := map_get(vars, node.name).(int)
 	add(IR_MOV, r, 0)
-	add(IR_SUB_IMM, r, off)
+	add(IR_SUB_IMM, r, node.offset)
 	return r
 }
 
@@ -210,7 +203,7 @@ func gen_expr(node *Node) int {
 			add(IR_LABEL, y, -1)
 			return r1
 		}
-	case ND_IDENT:
+	case ND_LVAR:
 		{
 			r := gen_lval(node)
 			add(IR_LOAD, r, r)
@@ -265,18 +258,14 @@ func gen_expr(node *Node) int {
 func gen_stmt(node *Node) {
 
 	if node.ty == ND_VARDEF {
-		stacksize += 8
-		map_put(vars, node.name, stacksize)
-
 		if node.init == nil {
 			return
 		}
-
 		rhs := gen_expr(node.init)
 		lhs := regno
 		regno++
 		add(IR_MOV, lhs, 0)
-		add(IR_SUB_IMM, lhs, stacksize)
+		add(IR_SUB_IMM, lhs, node.offset)
 		add(IR_STORE, lhs, rhs)
 		add(IR_KILL, lhs, -1)
 		add(IR_KILL, rhs, -1)
@@ -345,24 +334,6 @@ func gen_stmt(node *Node) {
 	error("unknown node: %d", node.ty)
 }
 
-func gen_args(nodes *Vector) {
-	if nodes.len == 0 {
-		return
-	}
-
-	add(IR_SAVE_ARGS, nodes.len, -1)
-
-	for i := 0; i < nodes.len; i++ {
-		node := nodes.data[i].(*Node)
-		if node.ty != ND_IDENT {
-			error("bad parameter")
-		}
-
-		stacksize += 8
-		map_put(vars, node.name, stacksize)
-	}
-}
-
 func gen_ir(nodes *Vector) *Vector {
 	v := new_vec()
 
@@ -371,16 +342,16 @@ func gen_ir(nodes *Vector) *Vector {
 		//assert(node.ty == ND_FUNC)
 
 		code = new_vec()
-		vars = new_map()
 		regno = 1
-		stacksize = 0
 
-		gen_args(node.args)
+		if nodes.len > 0 {
+			add(IR_SAVE_ARGS, node.args.len, -1)
+		}
 		gen_stmt(node.body)
 
 		fn := new(Function)
 		fn.name = node.name
-		fn.stacksize = stacksize
+		fn.stacksize = node.stacksize
 		fn.ir = code
 		vec_push(v, fn)
 	}
