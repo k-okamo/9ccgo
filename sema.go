@@ -5,25 +5,40 @@ var (
 	stacksize int
 )
 
+type Var struct {
+	ty     *Type
+	offset int
+}
+
 func walk(node *Node) {
-	switch node.ty {
+	switch node.op {
 	case ND_NUM:
 		return
 	case ND_IDENT:
-		if !map_exists(vars, node.name) {
-			error("undetined variable: %s", node.name)
+		{
+			v := map_get(vars, node.name).(*Var)
+			if v == nil {
+				error("undetined variable: %s", node.name)
+			}
+			node.ty = v.ty
+			node.op = ND_LVAR
+			node.offset = v.offset
+			return
 		}
-		node.ty = ND_LVAR
-		node.offset = map_get(vars, node.name).(int)
-		return
 	case ND_VARDEF:
-		stacksize += 8
-		map_put(vars, node.name, stacksize)
-		node.offset = stacksize
-		if node.init != nil {
-			walk(node.init)
+		{
+			stacksize += 8
+			node.offset = stacksize
+			v := new(Var)
+			v.ty = node.ty
+			v.offset = stacksize
+			map_put(vars, node.name, v)
+
+			if node.init != nil {
+				walk(node.init)
+			}
+			return
 		}
-		return
 	case ND_IF:
 		walk(node.cond)
 		walk(node.then)
@@ -37,17 +52,28 @@ func walk(node *Node) {
 		walk(node.inc)
 		walk(node.body)
 		return
-	case '+', '-', '*', '/', '=', '<', ND_LOGAND, ND_LOGOR:
+	case '+':
+		walk(node.lhs)
+		walk(node.rhs)
+		node.ty = node.lhs.ty
+		return
+	case '-', '*', '/', '=', '<', ND_LOGAND:
 		walk(node.lhs)
 		walk(node.rhs)
 		return
-	case ND_RETURN:
+	case ND_LOGOR:
+		walk(node.lhs)
+		walk(node.rhs)
+		node.ty = node.lhs.ty
+		return
+	case ND_DEREF, ND_RETURN:
 		walk(node.expr)
 		return
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {
 			walk(node.args.data[i].(*Node))
 		}
+		node.ty = &int_ty
 		return
 	case ND_FUNC:
 		for i := 0; i < node.args.len; i++ {
@@ -71,7 +97,7 @@ func walk(node *Node) {
 func sema(nodes *Vector) {
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)
-		//assert(node.ty == ND_FUNC)
+		//assert(node.op == ND_FUNC)
 
 		vars = new_map()
 		stacksize = 0

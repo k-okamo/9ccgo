@@ -1,7 +1,8 @@
 package main
 
 var (
-	pos = 0
+	pos    = 0
+	int_ty = Type{ty: INT, ptr_of: nil}
 )
 
 const (
@@ -11,6 +12,7 @@ const (
 	ND_LVAR                   // Variable reference
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
+	ND_DEREF                  // pointer dereference ("*")
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
@@ -20,8 +22,14 @@ const (
 	ND_EXPR_STMT              // Expressions statement
 )
 
+const (
+	INT = iota
+	PTR
+)
+
 type Node struct {
-	ty    int     // Node type
+	op    int     // Node type
+	ty    *Type   // C type
 	lhs   *Node   // left-hand side
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
@@ -49,6 +57,18 @@ type Node struct {
 	args *Vector
 }
 
+type Type struct {
+	ty     int
+	ptr_of *Type
+}
+
+func ptr_of(base *Type) *Type {
+	ty := new(Type)
+	ty.ty = PTR
+	ty.ptr_of = base
+	return ty
+}
+
 func expect(ty int) {
 	t := tokens.data[pos].(*Token)
 	if t.ty != ty {
@@ -73,7 +93,7 @@ func is_typename() bool {
 
 func new_node(op int, lhs, rhs *Node) *Node {
 	node := new(Node)
-	node.ty = op
+	node.op = op
 	node.lhs = lhs
 	node.rhs = rhs
 	return node
@@ -91,7 +111,8 @@ func term() *Node {
 
 	node := new(Node)
 	if t.ty == TK_NUM {
-		node.ty = ND_NUM
+		node.ty = &int_ty
+		node.op = ND_NUM
 		node.val = t.val
 		return node
 	}
@@ -99,11 +120,11 @@ func term() *Node {
 		node.name = t.name
 
 		if !consume('(') {
-			node.ty = ND_IDENT
+			node.op = ND_IDENT
 			return node
 		}
 
-		node.ty = ND_CALL
+		node.op = ND_CALL
 		node.args = new_vec()
 		if consume(')') {
 			return node
@@ -121,15 +142,25 @@ func term() *Node {
 	return nil
 }
 
+func unary() *Node {
+	if consume('*') {
+		node := new(Node)
+		node.op = ND_DEREF
+		node.expr = mul()
+		return node
+	}
+	return term()
+}
+
 func mul() *Node {
-	lhs := term()
+	lhs := unary()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != '*' && t.ty != '/' {
 			return lhs
 		}
 		pos++
-		lhs = new_node(t.ty, lhs, term())
+		lhs = new_node(t.ty, lhs, unary())
 	}
 	return lhs
 }
@@ -200,10 +231,23 @@ func assign() *Node {
 	return lhs
 }
 
+func ttype() *Type {
+	t := tokens.data[pos].(*Token)
+	if t.ty != TK_INT {
+		error("typename expected, but got %s", t.input)
+	}
+	pos++
+	ty := &int_ty
+	for consume('*') {
+		ty = ptr_of(ty)
+	}
+	return ty
+}
+
 func decl() *Node {
 	node := new(Node)
-	node.ty = ND_VARDEF
-	pos++
+	node.op = ND_VARDEF
+	node.ty = ttype()
 
 	t := tokens.data[pos].(*Token)
 	if t.ty != TK_IDENT {
@@ -221,8 +265,8 @@ func decl() *Node {
 
 func param() *Node {
 	node := new(Node)
-	node.ty = ND_VARDEF
-	pos++
+	node.op = ND_VARDEF
+	node.ty = ttype()
 
 	t := tokens.data[pos].(*Token)
 	if t.ty != TK_IDENT {
@@ -235,7 +279,7 @@ func param() *Node {
 
 func expr_stmt() *Node {
 	node := new(Node)
-	node.ty = ND_EXPR_STMT
+	node.op = ND_EXPR_STMT
 	node.expr = assign()
 	expect(';')
 	return node
@@ -250,7 +294,7 @@ func stmt() *Node {
 		return decl()
 	case TK_IF:
 		pos++
-		node.ty = ND_IF
+		node.op = ND_IF
 		expect('(')
 		node.cond = assign()
 		expect(')')
@@ -263,7 +307,7 @@ func stmt() *Node {
 		return node
 	case TK_FOR:
 		pos++
-		node.ty = ND_FOR
+		node.op = ND_FOR
 		expect('(')
 		if is_typename() {
 			node.init = decl()
@@ -278,13 +322,13 @@ func stmt() *Node {
 		return node
 	case TK_RETURN:
 		pos++
-		node.ty = ND_RETURN
+		node.op = ND_RETURN
 		node.expr = assign()
 		expect(';')
 		return node
 	case '{':
 		pos++
-		node.ty = ND_COMP_STMT
+		node.op = ND_COMP_STMT
 		node.stmts = new_vec()
 		for !consume('}') {
 			vec_push(node.stmts, stmt())
@@ -299,7 +343,7 @@ func stmt() *Node {
 func compound_stmt() *Node {
 
 	node := new(Node)
-	node.ty = ND_COMP_STMT
+	node.op = ND_COMP_STMT
 	node.stmts = new_vec()
 
 	for !consume('}') {
@@ -310,7 +354,7 @@ func compound_stmt() *Node {
 
 func function() *Node {
 	node := new(Node)
-	node.ty = ND_FUNC
+	node.op = ND_FUNC
 	node.args = new_vec()
 
 	t := tokens.data[pos].(*Token)

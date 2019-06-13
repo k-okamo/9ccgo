@@ -150,8 +150,8 @@ func label(x int) {
 }
 
 func gen_lval(node *Node) int {
-	if node.ty != ND_LVAR {
-		error("not an lvalue: %d (%s)", node.ty, node.name)
+	if node.op != ND_LVAR {
+		error("not an lvalue: %d (%s)", node.op, node.name)
 	}
 
 	r := nreg
@@ -170,7 +170,7 @@ func gen_binop(ty int, lhs, rhs *Node) int {
 
 func gen_expr(node *Node) int {
 
-	switch node.ty {
+	switch node.op {
 	case ND_NUM:
 		{
 			r := nreg
@@ -238,7 +238,12 @@ func gen_expr(node *Node) int {
 			}
 			return r
 		}
-
+	case ND_DEREF:
+		{
+			r := gen_expr(node.expr)
+			add(IR_LOAD, r, r)
+			return r
+		}
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
@@ -265,7 +270,7 @@ func gen_expr(node *Node) int {
 
 func gen_stmt(node *Node) {
 
-	if node.ty == ND_VARDEF {
+	if node.op == ND_VARDEF {
 		if node.init == nil {
 			return
 		}
@@ -280,7 +285,7 @@ func gen_stmt(node *Node) {
 		return
 	}
 
-	if node.ty == ND_IF {
+	if node.op == ND_IF {
 
 		if node.els != nil {
 			x := nlabel
@@ -305,7 +310,7 @@ func gen_stmt(node *Node) {
 		label(x)
 		return
 	}
-	if node.ty == ND_FOR {
+	if node.op == ND_FOR {
 		x := nlabel
 		nlabel++
 		y := nlabel
@@ -322,23 +327,23 @@ func gen_stmt(node *Node) {
 		label(y)
 		return
 	}
-	if node.ty == ND_RETURN {
+	if node.op == ND_RETURN {
 		r := gen_expr(node.expr)
 		add(IR_RETURN, r, -1)
 		kill(r)
 		return
 	}
-	if node.ty == ND_EXPR_STMT {
+	if node.op == ND_EXPR_STMT {
 		kill(gen_expr(node.expr))
 		return
 	}
-	if node.ty == ND_COMP_STMT {
+	if node.op == ND_COMP_STMT {
 		for i := 0; i < node.stmts.len; i++ {
 			gen_stmt((node.stmts.data[i]).(*Node))
 		}
 		return
 	}
-	error("unknown node: %d", node.ty)
+	error("unknown node: %d", node.op)
 }
 
 func gen_ir(nodes *Vector) *Vector {
@@ -346,7 +351,7 @@ func gen_ir(nodes *Vector) *Vector {
 
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)
-		//assert(node.ty == ND_FUNC)
+		//assert(node.op == ND_FUNC)
 
 		code = new_vec()
 		nreg = 1
