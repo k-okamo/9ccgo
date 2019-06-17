@@ -10,6 +10,20 @@ type Var struct {
 	offset int
 }
 
+func size_of(ty *Type) int {
+	if ty.ty == INT {
+		return 4
+	}
+	// assert(ty.ty == PTR)
+	return 8
+}
+
+func swap(p, q **Node) {
+	r := *p
+	*p = *q
+	*q = r
+}
+
 func walk(node *Node) {
 	switch node.op {
 	case ND_NUM:
@@ -52,21 +66,32 @@ func walk(node *Node) {
 		walk(node.inc)
 		walk(node.body)
 		return
-	case '+':
+	case '+', '-':
+		walk(node.lhs)
+		walk(node.rhs)
+
+		if node.rhs.ty.ty == PTR {
+			swap(&node.lhs, &node.rhs)
+		}
+		if node.rhs.ty.ty == PTR {
+			error("pointer %c pointer' is not defined", node.op)
+		}
+
+		node.ty = node.lhs.ty
+		return
+	case '*', '/', '=', '<', ND_LOGAND, ND_LOGOR:
 		walk(node.lhs)
 		walk(node.rhs)
 		node.ty = node.lhs.ty
 		return
-	case '-', '*', '/', '=', '<', ND_LOGAND:
-		walk(node.lhs)
-		walk(node.rhs)
+	case ND_DEREF:
+		walk(node.expr)
+		if node.expr.ty.ty != PTR {
+			error("operand must be a pointer")
+		}
+		node.ty = node.expr.ty.ptr_of
 		return
-	case ND_LOGOR:
-		walk(node.lhs)
-		walk(node.rhs)
-		node.ty = node.lhs.ty
-		return
-	case ND_DEREF, ND_RETURN:
+	case ND_RETURN:
 		walk(node.expr)
 		return
 	case ND_CALL:

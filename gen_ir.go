@@ -251,10 +251,28 @@ func gen_expr(node *Node) int {
 			kill(rhs)
 			return lhs
 		}
-	case '+':
-		return gen_binop(IR_ADD, node.lhs, node.rhs)
-	case '-':
-		return gen_binop(IR_SUB, node.lhs, node.rhs)
+	case '+', '-':
+		{
+			insn := IR_SUB
+			if node.op == '+' {
+				insn = IR_ADD
+			}
+			if node.lhs.ty.ty != PTR {
+				return gen_binop(insn, node.lhs, node.rhs)
+			}
+
+			rhs := gen_expr(node.rhs)
+			r := nreg
+			nreg++
+			add(IR_IMM, r, size_of(node.lhs.ty.ptr_of))
+			add(IR_MUL, rhs, r)
+			kill(r)
+
+			lhs := gen_expr(node.lhs)
+			add(insn, lhs, rhs)
+			kill(rhs)
+			return lhs
+		}
 	case '*':
 		return gen_binop(IR_MUL, node.lhs, node.rhs)
 	case '/':
