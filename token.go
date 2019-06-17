@@ -48,10 +48,9 @@ func add_token(v *Vector, ty int, input string) *Token {
 	return t
 }
 
-func scan(s string) *Vector {
+func tokenize(s string) *Vector {
 
 	v := new_vec()
-	i := 0
 
 loop:
 	for len(s) != 0 {
@@ -65,12 +64,11 @@ loop:
 		// Single-letter token
 		if strchr("+-*/;=(),{}<>", c) != "" {
 			add_token(v, int(c), s)
-			i++
 			s = s[1:]
 			continue
 		}
 
-		// Multi-letter token
+		// Multi-letter token or keywords
 		for _, sym := range symbols {
 			length := len(sym.name)
 			if length > len(s) {
@@ -100,7 +98,6 @@ loop:
 			}
 			t := add_token(v, TK_IDENT, s)
 			t.name = strndup(s, length)
-			i++
 			s = s[length:]
 			continue
 		}
@@ -108,10 +105,14 @@ loop:
 		// Number
 		if unicode.IsDigit(c) {
 			t := add_token(v, TK_NUM, s)
-			val := 0
-			val, s = strtol(s, 10)
-			t.val = val
-			i++
+			i := 0
+			cc := []rune(s)[i]
+			for unicode.IsDigit(cc) {
+				t.val = t.val*10 + (int(cc) - '0')
+				i++
+				cc = []rune(s)[i]
+			}
+			s = s[i:]
 			continue
 		}
 
@@ -120,10 +121,6 @@ loop:
 
 	add_token(v, TK_EOF, s)
 	return v
-}
-
-func tokenize(s string) *Vector {
-	return scan(s)
 }
 
 // [Debug] tokens print
