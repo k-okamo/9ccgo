@@ -107,6 +107,17 @@ func walk(node *Node, decay bool) *Node {
 	case ND_RETURN:
 		node.expr = walk(node.expr, true)
 		return node
+	case ND_SIZEOF:
+		{
+			expr := walk(node.expr, false)
+
+			ret := new(Node)
+			ret.op = ND_NUM
+			ret.ty = new(Type)
+			ret.ty.ty = INT
+			ret.val = size_of(expr.ty)
+			return ret
+		}
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {
 			node.args.data[i] = walk(node.args.data[i].(*Node), true)

@@ -8,10 +8,15 @@ import (
 var (
 	tokens   *Vector
 	keywords *Map
-	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND}, {name: "||", ty: TK_LOGOR},
-		{name: "else", ty: TK_ELSE}, {name: "for", ty: TK_FOR},
-		{name: "if", ty: TK_IF}, {name: "return", ty: TK_RETURN},
-		{name: "int", ty: TK_INT}}
+	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND},
+		{name: "||", ty: TK_LOGOR},
+		{name: "else", ty: TK_ELSE},
+		{name: "for", ty: TK_FOR},
+		{name: "if", ty: TK_IF},
+		{name: "return", ty: TK_RETURN},
+		{name: "int", ty: TK_INT},
+		{name: "sizeof", ty: TK_SIZEOF},
+	}
 )
 
 const (
@@ -24,6 +29,7 @@ const (
 	TK_LOGOR               // ||
 	TK_LOGAND              // &&
 	TK_RETURN              // "return"
+	TK_SIZEOF              // "sizeof"
 	TK_EOF                 // End marker
 )
 

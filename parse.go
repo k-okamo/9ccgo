@@ -17,6 +17,7 @@ const (
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
+	ND_SIZEOF                 // "sizeof"
 	ND_CALL                   // Function call
 	ND_FUNC                   // Function definition
 	ND_COMP_STMT              // Compound statement
@@ -154,6 +155,12 @@ func unary() *Node {
 		node := new(Node)
 		node.op = ND_ADDR
 		node.expr = mul()
+		return node
+	}
+	if consume(TK_SIZEOF) {
+		node := new(Node)
+		node.op = ND_SIZEOF
+		node.expr = unary()
 		return node
 	}
 	return term()
