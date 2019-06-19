@@ -163,16 +163,12 @@ func gen_lval(node *Node) int {
 		return gen_expr(node.expr)
 	}
 
-	if node.op == ND_LVAR {
-		r := nreg
-		nreg++
-		add(IR_MOV, r, 0)
-		add(IR_SUB_IMM, r, node.offset)
-		return r
-	}
-
-	error("not an lvalue: %d (%s)", node.op, node.name)
-	return -1
+	// assert(node.op == ND_LVAR)
+	r := nreg
+	nreg++
+	add(IR_MOV, r, 0)
+	add(IR_SUB_IMM, r, node.offset)
+	return r
 }
 
 func gen_binop(ty int, lhs, rhs *Node) int {
