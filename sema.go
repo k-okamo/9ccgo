@@ -20,17 +20,14 @@ func addr_of(base *Node, ty *Type) *Node {
 	node := new(Node)
 	node.op = ND_ADDR
 	node.ty = ptr_of(ty)
-
-	cp := new(Node)
-	copy_node(base, cp) // memcpy
-	node.expr = cp
+	node.expr = base
 	return node
 }
 
-func walk(node *Node, decay bool) {
+func walk(node *Node, decay bool) *Node {
 	switch node.op {
 	case ND_NUM:
-		return
+		return node
 	case ND_IDENT:
 		{
 			v := map_get(vars, node.name).(*Var)
@@ -41,11 +38,10 @@ func walk(node *Node, decay bool) {
 			node.offset = v.offset
 
 			if decay && v.ty.ty == ARY {
-				*node = *addr_of(node, v.ty.ary_of)
-			} else {
-				node.ty = v.ty
+				return addr_of(node, v.ty.ary_of)
 			}
-			return
+			node.ty = v.ty
+			return node
 		}
 	case ND_VARDEF:
 		{
@@ -57,26 +53,26 @@ func walk(node *Node, decay bool) {
 			map_put(vars, node.name, v)
 
 			if node.init != nil {
-				walk(node.init, true)
+				node.init = walk(node.init, true)
 			}
-			return
+			return node
 		}
 	case ND_IF:
-		walk(node.cond, true)
-		walk(node.then, true)
+		node.cond = walk(node.cond, true)
+		node.then = walk(node.then, true)
 		if node.els != nil {
-			walk(node.els, true)
+			node.els = walk(node.els, true)
 		}
-		return
+		return node
 	case ND_FOR:
-		walk(node.init, true)
-		walk(node.cond, true)
-		walk(node.inc, true)
-		walk(node.body, true)
-		return
+		node.init = walk(node.init, true)
+		node.cond = walk(node.cond, true)
+		node.inc = walk(node.inc, true)
+		node.body = walk(node.body, true)
+		return node
 	case '+', '-':
-		walk(node.lhs, true)
-		walk(node.rhs, true)
+		node.lhs = walk(node.lhs, true)
+		node.rhs = walk(node.rhs, true)
 
 		if node.rhs.ty.ty == PTR {
 			swap(&node.lhs, &node.rhs)
@@ -86,54 +82,55 @@ func walk(node *Node, decay bool) {
 		}
 
 		node.ty = node.lhs.ty
-		return
+		return node
 	case '=':
-		walk(node.lhs, false)
-		walk(node.rhs, true)
+		node.lhs = walk(node.lhs, false)
+		node.rhs = walk(node.rhs, true)
 		node.ty = node.lhs.ty
-		return
+		return node
 	case '*', '/', '<', ND_LOGAND, ND_LOGOR:
-		walk(node.lhs, true)
-		walk(node.rhs, true)
+		node.lhs = walk(node.lhs, true)
+		node.rhs = walk(node.rhs, true)
 		node.ty = node.lhs.ty
-		return
+		return node
 	case ND_ADDR:
-		walk(node.expr, true)
+		node.expr = walk(node.expr, true)
 		node.ty = ptr_of(node.expr.ty)
-		return
+		return node
 	case ND_DEREF:
-		walk(node.expr, true)
+		node.expr = walk(node.expr, true)
 		if node.expr.ty.ty != PTR {
 			error("operand must be a pointer")
 		}
 		node.ty = node.expr.ty.ptr_of
-		return
+		return node
 	case ND_RETURN:
-		walk(node.expr, true)
-		return
+		node.expr = walk(node.expr, true)
+		return node
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {
-			walk(node.args.data[i].(*Node), true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), true)
 		}
 		node.ty = &int_ty
-		return
+		return node
 	case ND_FUNC:
 		for i := 0; i < node.args.len; i++ {
-			walk(node.args.data[i].(*Node), true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), true)
 		}
-		walk(node.body, true)
-		return
+		node.body = walk(node.body, true)
+		return node
 	case ND_COMP_STMT:
 		for i := 0; i < node.stmts.len; i++ {
-			walk(node.stmts.data[i].(*Node), true)
+			node.stmts.data[i] = walk(node.stmts.data[i].(*Node), true)
 		}
-		return
+		return node
 	case ND_EXPR_STMT:
-		walk(node.expr, true)
-		return
+		node.expr = walk(node.expr, true)
+		return node
 	default:
 		//assert(0 && "unknouwn node type")
 	}
+	return nil
 }
 
 func sema(nodes *Vector) {
