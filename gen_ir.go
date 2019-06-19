@@ -20,6 +20,7 @@ var irinfo = map[int]IRInfo{
 	IR_SUB_IMM:     {name: "SUB", ty: IR_TY_REG_IMM},
 	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:       {name: "", ty: IR_TY_LABEL},
+	IR_LABEL_ADDR:  {name: "", ty: IR_TY_LABEL_ADDR},
 	IR_LT:          {name: "LT", ty: IR_TY_REG_REG},
 	IR_JMP:         {name: "JMP", ty: IR_TY_JMP},
 	IR_UNLESS:      {name: "UNLESS", ty: IR_TY_REG_LABEL},
@@ -50,6 +51,7 @@ const (
 	IR_RETURN
 	IR_CALL
 	IR_LABEL
+	IR_LABEL_ADDR
 	IR_LT
 	IR_JMP
 	IR_UNLESS
@@ -72,6 +74,7 @@ const (
 	IR_TY_IMM
 	IR_TY_JMP
 	IR_TY_LABEL
+	IR_TY_LABEL_ADDR
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
 	IR_TY_IMM_IMM
@@ -98,6 +101,7 @@ type IRInfo struct {
 type Function struct {
 	name      string
 	stacksize int
+	strings   *Vector
 	ir        *Vector
 }
 
@@ -106,6 +110,8 @@ func tostr(ir *IR) string {
 	switch info.ty {
 	case IR_TY_LABEL:
 		return format(".L%d:", ir.lhs)
+	case IR_TY_LABEL_ADDR:
+		return format("\t%s r%d, %s", info.name, ir.lhs, ir.name)
 	case IR_TY_IMM:
 		return format("\t%s %d", info.name, ir.lhs)
 	case IR_TY_REG:
@@ -169,11 +175,18 @@ func gen_lval(node *Node) int {
 		return gen_expr(node.expr)
 	}
 
-	// assert(node.op == ND_LVAR)
+	if node.op == ND_LVAR {
+		r := nreg
+		nreg++
+		add(IR_MOV, r, 0)
+		add(IR_SUB_IMM, r, node.offset)
+		return r
+	}
+	// assert(node.op == ND_GVAR)
 	r := nreg
 	nreg++
-	add(IR_MOV, r, 0)
-	add(IR_SUB_IMM, r, node.offset)
+	ir := add(IR_LABEL_ADDR, r, -1)
+	ir.name = node.name
 	return r
 }
 
@@ -227,7 +240,7 @@ func gen_expr(node *Node) int {
 			label(y)
 			return r1
 		}
-	case ND_LVAR:
+	case ND_GVAR, ND_LVAR:
 		{
 			r := gen_lval(node)
 			if node.ty.ty == CHAR {
@@ -267,7 +280,13 @@ func gen_expr(node *Node) int {
 	case ND_DEREF:
 		{
 			r := gen_expr(node.expr)
-			add(IR_LOAD64, r, r)
+			if node.expr.ty.ptr_of.ty == CHAR {
+				add(IR_LOAD8, r, r)
+			} else if node.expr.ty.ptr_of.ty == INT {
+				add(IR_LOAD32, r, r)
+			} else {
+				add(IR_LOAD64, r, r)
+			}
 			return r
 		}
 	case '=':
@@ -412,9 +431,6 @@ func gen_ir(nodes *Vector) *Vector {
 		code = new_vec()
 		nreg = 1
 
-		//if nodes.len > 0 {
-		//	add(IR_SAVE_ARGS, node.args.len, -1)
-		//}
 		for i := 0; i < node.args.len; i++ {
 			arg := node.args.data[i].(*Node)
 			if arg.ty.ty == CHAR {
@@ -432,6 +448,7 @@ func gen_ir(nodes *Vector) *Vector {
 		fn.name = node.name
 		fn.stacksize = node.stacksize
 		fn.ir = code
+		fn.strings = node.strings
 		vec_push(v, fn)
 	}
 	return v

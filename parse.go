@@ -8,9 +8,11 @@ var (
 
 const (
 	ND_NUM       = iota + 256 // Number literal
+	ND_STR                    // String literal
 	ND_IDENT                  // Identigier
 	ND_VARDEF                 // Variable definition
-	ND_LVAR                   // Variable reference
+	ND_LVAR                   // Local variable reference
+	ND_GVAR                   // Global variable reference
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
 	ND_ADDR                   // address-of operator ("&")
@@ -38,6 +40,7 @@ type Node struct {
 	lhs   *Node   // left-hand side
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
+	str   string  // String literal
 	expr  *Node   // "return" or expression stmt
 	stmts *Vector // Compound statement
 
@@ -54,6 +57,7 @@ type Node struct {
 
 	// Function definition
 	stacksize int
+	strings   *Vector
 
 	// Local variable
 	offset int
@@ -133,6 +137,14 @@ func primary() *Node {
 		node.val = t.val
 		return node
 	}
+
+	if t.ty == TK_STR {
+		node.ty = ary_of(&char_ty, len(t.str))
+		node.op = ND_STR
+		node.str = t.str
+		return node
+	}
+
 	if t.ty == TK_IDENT {
 		node.name = t.name
 

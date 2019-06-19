@@ -18,10 +18,18 @@ func gen_label() string {
 }
 
 func gen(fn *Function) {
+	fmt.Printf(".data\n")
+	for i := 0; i < fn.strings.len; i++ {
+		node := fn.strings.data[i].(*Node)
+		// assert(node.op == ND_STR)
+		fmt.Printf("%s:\n", node.name)
+		fmt.Printf("\t.asciz \"%s\"\n", node.str)
+	}
 
 	ret := format(".Lend%d", nlabel)
 	nlabel++
 
+	fmt.Printf(".text\n")
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)
 	fmt.Printf("\tpush rbp\n")
@@ -61,6 +69,8 @@ func gen(fn *Function) {
 			}
 		case IR_LABEL:
 			fmt.Printf(".L%d:\n", ir.lhs)
+		case IR_LABEL_ADDR:
+			fmt.Printf("\tlea %s, %s\n", regs[ir.lhs], ir.name)
 		case IR_LT:
 			fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 			fmt.Printf("\tsetl %s\n", regs8[ir.lhs])
@@ -72,6 +82,7 @@ func gen(fn *Function) {
 			fmt.Printf("\tje .L%d\n", ir.rhs)
 		case IR_LOAD8:
 			fmt.Printf("\tmov %s, [%s]\n", regs8[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
 		case IR_LOAD32:
 			fmt.Printf("\tmov %s, [%s]\n", regs32[ir.lhs], regs[ir.rhs])
 		case IR_LOAD64:

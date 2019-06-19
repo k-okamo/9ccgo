@@ -23,6 +23,7 @@ var (
 
 const (
 	TK_NUM    = iota + 256 // Number literal
+	TK_STR                 // String literal
 	TK_IDENT               // Identifier
 	TK_INT                 // "int"
 	TK_CHAR                // "char"
@@ -40,6 +41,7 @@ const (
 type Token struct {
 	ty    int    // Token type
 	val   int    // Number literal
+	str   string // String literal
 	name  string // Identifier
 	input string // Token string (for error reporting)
 }
@@ -67,6 +69,28 @@ loop:
 		c := []rune(s)[0]
 		if unicode.IsSpace(c) {
 			s = s[1:]
+			continue
+		}
+
+		// String literal
+		if c == '"' {
+			t := add_token(v, TK_STR, s)
+			s = s[1:]
+
+			length := 0
+			c = []rune(s)[length]
+			for c != '"' {
+				length++
+				if length == len(s) {
+					break
+				}
+				c = []rune(s)[length]
+			}
+			if length == len(s) {
+				error("prematue end of input")
+			}
+			t.str = strndup(s, length)
+			s = s[length+1:]
 			continue
 		}
 

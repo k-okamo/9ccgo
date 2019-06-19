@@ -79,6 +79,7 @@ func copy_node(src, dst *Node) {
 	// value
 	dst.op = src.op
 	dst.val = src.val
+	dst.str = src.str
 	dst.name = src.name
 	dst.stacksize = src.stacksize
 	dst.offset = src.offset
@@ -98,6 +99,7 @@ func copy_node(src, dst *Node) {
 
 	// Vector
 	copy_vector(src.stmts, dst.stmts)
+	copy_vector(src.strings, dst.strings)
 	copy_vector(src.args, dst.args)
 }
 
