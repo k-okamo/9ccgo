@@ -61,13 +61,6 @@ loop:
 			continue
 		}
 
-		// Single-letter token
-		if strchr("+-*/;=(),{}<>[]", c) != "" {
-			add_token(v, int(c), s)
-			s = s[1:]
-			continue
-		}
-
 		// Multi-letter token or keywords
 		for _, sym := range symbols {
 			length := len(sym.name)
@@ -80,6 +73,13 @@ loop:
 			add_token(v, sym.ty, s)
 			s = s[length:]
 			continue loop
+		}
+
+		// Single-letter token
+		if strchr("+-*/;=(),{}<>[]&", c) != "" {
+			add_token(v, int(c), s)
+			s = s[1:]
+			continue
 		}
 
 		// Identifier

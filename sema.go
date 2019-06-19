@@ -22,8 +22,7 @@ func addr_of(base *Node, ty *Type) *Node {
 	node.ty = ptr_of(ty)
 
 	cp := new(Node)
-	// memcpy(cp, base, sizeof(Node))
-	copy_node(base, cp)
+	copy_node(base, cp) // memcpy
 	node.expr = cp
 	return node
 }
@@ -97,6 +96,10 @@ func walk(node *Node, decay bool) {
 		walk(node.lhs, true)
 		walk(node.rhs, true)
 		node.ty = node.lhs.ty
+		return
+	case ND_ADDR:
+		walk(node.expr, true)
+		node.ty = ptr_of(node.expr.ty)
 		return
 	case ND_DEREF:
 		walk(node.expr, true)

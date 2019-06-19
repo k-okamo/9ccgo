@@ -150,6 +150,12 @@ func unary() *Node {
 		node.expr = mul()
 		return node
 	}
+	if consume('&') {
+		node := new(Node)
+		node.op = ND_ADDR
+		node.expr = mul()
+		return node
+	}
 	return term()
 }
 
