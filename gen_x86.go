@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	n      int
-	argreg = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+	n        int
+	argreg32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
+	argreg64 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 )
 
 func gen_label() string {
@@ -46,7 +47,7 @@ func gen(fn *Function) {
 		case IR_CALL:
 			{
 				for i := 0; i < ir.nargs; i++ {
-					fmt.Printf("\tmov %s, %s\n", argreg[i], regs[ir.args[i]])
+					fmt.Printf("\tmov %s, %s\n", argreg64[i], regs[ir.args[i]])
 				}
 				fmt.Printf("\tpush r10\n")
 				fmt.Printf("\tpush r11\n")
@@ -68,14 +69,18 @@ func gen(fn *Function) {
 		case IR_UNLESS:
 			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
 			fmt.Printf("\tje .L%d\n", ir.rhs)
-		case IR_LOAD:
+		case IR_LOAD32:
+			fmt.Printf("\tmov %s, [%s]\n", regs32[ir.lhs], regs[ir.rhs])
+		case IR_LOAD64:
 			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
-		case IR_STORE:
+		case IR_STORE32:
+			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs32[ir.rhs])
+		case IR_STORE64:
 			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
-		case IR_SAVE_ARGS:
-			for i := 0; i < ir.lhs; i++ {
-				fmt.Printf("\tmov [rbp-%d], %s\n", (i+1)*8, argreg[i])
-			}
+		case IR_STORE32_ARG:
+			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg32[ir.rhs])
+		case IR_STORE64_ARG:
+			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg64[ir.rhs])
 		case IR_ADD:
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_SUB:

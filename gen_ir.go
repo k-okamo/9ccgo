@@ -12,25 +12,28 @@ var (
 )
 
 var irinfo = map[int]IRInfo{
-	IR_ADD:       {name: "ADD", ty: IR_TY_REG_REG},
-	IR_SUB:       {name: "SUB", ty: IR_TY_REG_REG},
-	IR_MUL:       {name: "MUL", ty: IR_TY_REG_REG},
-	IR_DIV:       {name: "DIV", ty: IR_TY_REG_REG},
-	IR_IMM:       {name: "MOV", ty: IR_TY_REG_IMM},
-	IR_SUB_IMM:   {name: "SUB", ty: IR_TY_REG_IMM},
-	IR_MOV:       {name: "MOV", ty: IR_TY_REG_REG},
-	IR_LABEL:     {name: "", ty: IR_TY_LABEL},
-	IR_LT:        {name: "LT", ty: IR_TY_REG_REG},
-	IR_JMP:       {name: "JMP", ty: IR_TY_JMP},
-	IR_UNLESS:    {name: "UNLESS", ty: IR_TY_REG_LABEL},
-	IR_CALL:      {name: "CALL", ty: IR_TY_CALL},
-	IR_RETURN:    {name: "RET", ty: IR_TY_REG},
-	IR_LOAD:      {name: "LOAD", ty: IR_TY_REG_REG},
-	IR_STORE:     {name: "STORE", ty: IR_TY_REG_REG},
-	IR_KILL:      {name: "KILL", ty: IR_TY_REG},
-	IR_SAVE_ARGS: {name: "SAVE_ARGS", ty: IR_TY_IMM},
-	IR_NOP:       {name: "NOP", ty: IR_TY_NOARG},
-	0:            {name: "", ty: 0},
+	IR_ADD:         {name: "ADD", ty: IR_TY_REG_REG},
+	IR_SUB:         {name: "SUB", ty: IR_TY_REG_REG},
+	IR_MUL:         {name: "MUL", ty: IR_TY_REG_REG},
+	IR_DIV:         {name: "DIV", ty: IR_TY_REG_REG},
+	IR_IMM:         {name: "MOV", ty: IR_TY_REG_IMM},
+	IR_SUB_IMM:     {name: "SUB", ty: IR_TY_REG_IMM},
+	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
+	IR_LABEL:       {name: "", ty: IR_TY_LABEL},
+	IR_LT:          {name: "LT", ty: IR_TY_REG_REG},
+	IR_JMP:         {name: "JMP", ty: IR_TY_JMP},
+	IR_UNLESS:      {name: "UNLESS", ty: IR_TY_REG_LABEL},
+	IR_CALL:        {name: "CALL", ty: IR_TY_CALL},
+	IR_RETURN:      {name: "RET", ty: IR_TY_REG},
+	IR_LOAD32:      {name: "LOAD32", ty: IR_TY_REG_REG},
+	IR_LOAD64:      {name: "LOAD64", ty: IR_TY_REG_REG},
+	IR_STORE32:     {name: "STORE32", ty: IR_TY_REG_REG},
+	IR_STORE64:     {name: "STORE64", ty: IR_TY_REG_REG},
+	IR_STORE32_ARG: {name: "STORE32_ARG", ty: IR_TY_IMM_IMM},
+	IR_STORE64_ARG: {name: "STORE64_ARG", ty: IR_TY_IMM_IMM},
+	IR_KILL:        {name: "KILL", ty: IR_TY_REG},
+	IR_NOP:         {name: "NOP", ty: IR_TY_NOARG},
+	0:              {name: "", ty: 0},
 }
 
 const (
@@ -47,10 +50,13 @@ const (
 	IR_LT
 	IR_JMP
 	IR_UNLESS
-	IR_LOAD
-	IR_STORE
+	IR_LOAD32
+	IR_LOAD64
+	IR_STORE32
+	IR_STORE64
+	IR_STORE32_ARG
+	IR_STORE64_ARG
 	IR_KILL
-	IR_SAVE_ARGS
 	IR_NOP
 )
 
@@ -62,6 +68,7 @@ const (
 	IR_TY_LABEL
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
+	IR_TY_IMM_IMM
 	IR_TY_REG_LABEL
 	IR_TY_CALL
 )
@@ -103,6 +110,8 @@ func tostr(ir *IR) string {
 		return format("\t%s r%d, r%d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_IMM:
 		return format("\t%s r%d, %d", info.name, ir.lhs, ir.rhs)
+	case IR_TY_IMM_IMM:
+		return format("\t%s %d, %d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_REG_LABEL:
 		return format("\t%s r%d, .L%d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_CALL:
@@ -150,15 +159,20 @@ func label(x int) {
 }
 
 func gen_lval(node *Node) int {
-	if node.op != ND_LVAR {
-		error("not an lvalue: %d (%s)", node.op, node.name)
+	if node.op == ND_DEREF {
+		return gen_expr(node.expr)
 	}
 
-	r := nreg
-	nreg++
-	add(IR_MOV, r, 0)
-	add(IR_SUB_IMM, r, node.offset)
-	return r
+	if node.op == ND_LVAR {
+		r := nreg
+		nreg++
+		add(IR_MOV, r, 0)
+		add(IR_SUB_IMM, r, node.offset)
+		return r
+	}
+
+	error("not an lvalue: %d (%s)", node.op, node.name)
+	return -1
 }
 
 func gen_binop(ty int, lhs, rhs *Node) int {
@@ -214,7 +228,11 @@ func gen_expr(node *Node) int {
 	case ND_LVAR:
 		{
 			r := gen_lval(node)
-			add(IR_LOAD, r, r)
+			if node.ty.ty == PTR {
+				add(IR_LOAD64, r, r)
+			} else {
+				add(IR_LOAD32, r, r)
+			}
 			return r
 		}
 
@@ -238,16 +256,24 @@ func gen_expr(node *Node) int {
 			}
 			return r
 		}
+	case ND_ADDR:
+		{
+			return gen_lval(node.expr)
+		}
 	case ND_DEREF:
 		{
 			r := gen_expr(node.expr)
-			add(IR_LOAD, r, r)
+			add(IR_LOAD64, r, r)
 			return r
 		}
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
-			add(IR_STORE, lhs, rhs)
+			if node.lhs.ty.ty == PTR {
+				add(IR_STORE64, lhs, rhs)
+			} else {
+				add(IR_STORE32, lhs, rhs)
+			}
 			kill(rhs)
 			return lhs
 		}
@@ -297,7 +323,11 @@ func gen_stmt(node *Node) {
 		nreg++
 		add(IR_MOV, lhs, 0)
 		add(IR_SUB_IMM, lhs, node.offset)
-		add(IR_STORE, lhs, rhs)
+		if node.ty.ty == PTR {
+			add(IR_STORE64, lhs, rhs)
+		} else {
+			add(IR_STORE32, lhs, rhs)
+		}
 		kill(lhs)
 		kill(rhs)
 		return
@@ -374,9 +404,18 @@ func gen_ir(nodes *Vector) *Vector {
 		code = new_vec()
 		nreg = 1
 
-		if nodes.len > 0 {
-			add(IR_SAVE_ARGS, node.args.len, -1)
+		//if nodes.len > 0 {
+		//	add(IR_SAVE_ARGS, node.args.len, -1)
+		//}
+		for i := 0; i < node.args.len; i++ {
+			arg := node.args.data[i].(*Node)
+			op := IR_STORE32_ARG
+			if arg.ty.ty == PTR {
+				op = IR_STORE64_ARG
+			}
+			add(op, arg.offset, i)
 		}
+
 		gen_stmt(node.body)
 
 		fn := new(Function)
@@ -416,14 +455,20 @@ func print_irs(fns *Vector) {
 				op = "IR_JMP      "
 			case IR_UNLESS:
 				op = "IR_UNLESS   "
-			case IR_LOAD:
-				op = "IR_LOAD     "
-			case IR_STORE:
-				op = "IR_STORE    "
+			case IR_LOAD32:
+				op = "IR_LOAD32   "
+			case IR_LOAD64:
+				op = "IR_LOAD64   "
+			case IR_STORE32:
+				op = "IR_STORE32  "
+			case IR_STORE64:
+				op = "IR_STORE64  "
+			case IR_STORE32_ARG:
+				op = "IR_STORE32_ARG  "
+			case IR_STORE64_ARG:
+				op = "IR_STORE64_ARG  "
 			case IR_KILL:
 				op = "IR_KILL     "
-			case IR_SAVE_ARGS:
-				op = "IR_SAVE_ARGS"
 			case IR_NOP:
 				op = "IR_NOP      "
 			case IR_ADD:

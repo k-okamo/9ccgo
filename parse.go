@@ -12,6 +12,7 @@ const (
 	ND_LVAR                   // Variable reference
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
+	ND_ADDR                   // address-of operator ("&")
 	ND_DEREF                  // pointer dereference ("*")
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
@@ -25,6 +26,7 @@ const (
 const (
 	INT = iota
 	PTR
+	ARY
 )
 
 type Node struct {
@@ -58,15 +60,14 @@ type Node struct {
 }
 
 type Type struct {
-	ty     int
-	ptr_of *Type
-}
+	ty int
 
-func ptr_of(base *Type) *Type {
-	ty := new(Type)
-	ty.ty = PTR
-	ty.ptr_of = base
-	return ty
+	// Pointer
+	ptr_of *Type
+
+	//Array
+	ary_of *Type
+	len    int
 }
 
 func expect(ty int) {
@@ -247,8 +248,11 @@ func ttype() *Type {
 func decl() *Node {
 	node := new(Node)
 	node.op = ND_VARDEF
+
+	// Read the first half of type name (e.g. `int *`).
 	node.ty = ttype()
 
+	// Read an identifier.
 	t := tokens.data[pos].(*Token)
 	if t.ty != TK_IDENT {
 		error("variable name expected, but got %s", t.input)
@@ -256,6 +260,22 @@ func decl() *Node {
 	node.name = t.name
 	pos++
 
+	// Read the second half of type name (e.g. `[3][5]`).
+	ary_size := new_vec()
+	for consume('[') {
+		length := term()
+		if length.op != ND_NUM {
+			error("number expected")
+		}
+		vec_push(ary_size, length)
+		expect(']')
+	}
+	for i := ary_size.len - 1; i >= 0; i-- {
+		len := ary_size.data[i].(*Node)
+		node.ty = ary_of(node.ty, len.val)
+	}
+
+	// Read an initializer.
 	if consume('=') {
 		node.init = assign()
 	}

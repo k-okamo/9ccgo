@@ -42,6 +42,90 @@ func sb_get(sb *StringBuilder) string {
 	return sb.data
 }
 
+func ptr_of(base *Type) *Type {
+	ty := new(Type)
+	ty.ty = PTR
+	ty.ptr_of = base
+	return ty
+}
+
+func ary_of(base *Type, length int) *Type {
+	ty := new(Type)
+	ty.ty = ARY
+	ty.ary_of = base
+	ty.len = length
+	return ty
+}
+
+func size_of(ty *Type) int {
+	if ty.ty == INT {
+		return 4
+	}
+	if ty.ty == ARY {
+		return size_of(ty.ary_of) * ty.len
+	}
+	// assert(ty.ty == PTR)
+	return 8
+}
+
+func copy_node(src, dst *Node) {
+	if src == nil {
+		return
+	}
+
+	// value
+	dst.op = src.op
+	dst.val = src.val
+	dst.name = src.name
+	dst.stacksize = src.stacksize
+	dst.offset = src.offset
+
+	// Node
+	copy_node(src.lhs, dst.lhs)
+	copy_node(src.rhs, dst.rhs)
+	copy_node(src.expr, dst.expr)
+	copy_node(src.cond, dst.cond)
+	copy_node(src.then, dst.then)
+	copy_node(src.els, dst.els)
+	copy_node(src.init, dst.init)
+	copy_node(src.body, dst.body)
+
+	// Type
+	copy_type(src.ty, dst.ty)
+
+	// Vector
+	copy_vector(src.stmts, dst.stmts)
+	copy_vector(src.args, dst.args)
+}
+
+func copy_type(src, dst *Type) {
+	if src == nil {
+		return
+	}
+
+	// value
+	dst.ty = src.ty
+	dst.len = src.len
+
+	// Type
+	copy_type(src.ptr_of, dst.ptr_of)
+	copy_type(src.ary_of, dst.ary_of)
+}
+
+func copy_vector(src, dst *Vector) {
+	if src == nil {
+		return
+	}
+
+	// value
+	dst.len = src.len
+	dst.capacity = src.capacity
+	dst.data = make([]interface{}, dst.capacity, dst.len)
+	for i := range src.data {
+		dst.data[i] = src.data[i]
+	}
+}
+
 // Map
 type Map struct {
 	keys *Vector
