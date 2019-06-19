@@ -101,7 +101,7 @@ func new_node(op int, lhs, rhs *Node) *Node {
 	return node
 }
 
-func term() *Node {
+func primary() *Node {
 	t := tokens.data[pos].(*Token)
 	pos++
 
@@ -144,6 +144,18 @@ func term() *Node {
 	return nil
 }
 
+func postfix() *Node {
+	lhs := primary()
+	for consume('[') {
+		node := new(Node)
+		node.op = ND_DEREF
+		node.expr = new_node('+', lhs, primary())
+		lhs = node
+		expect(']')
+	}
+	return lhs
+}
+
 func unary() *Node {
 	if consume('*') {
 		node := new(Node)
@@ -163,7 +175,7 @@ func unary() *Node {
 		node.expr = unary()
 		return node
 	}
-	return term()
+	return postfix()
 }
 
 func mul() *Node {
@@ -177,6 +189,23 @@ func mul() *Node {
 		lhs = new_node(t.ty, lhs, unary())
 	}
 	return lhs
+}
+
+func read_array(ty *Type) *Type {
+	v := new_vec()
+	for consume('[') {
+		l := primary()
+		if l.op != ND_NUM {
+			error("number expected")
+		}
+		vec_push(v, l)
+		expect(']')
+	}
+	for i := v.len - 1; i >= 0; i-- {
+		l := v.data[i].(*Node)
+		ty = ary_of(ty, l.val)
+	}
+	return ty
 }
 
 func parse_add() *Node {
@@ -274,19 +303,7 @@ func decl() *Node {
 	pos++
 
 	// Read the second half of type name (e.g. `[3][5]`).
-	ary_size := new_vec()
-	for consume('[') {
-		length := term()
-		if length.op != ND_NUM {
-			error("number expected")
-		}
-		vec_push(ary_size, length)
-		expect(']')
-	}
-	for i := ary_size.len - 1; i >= 0; i-- {
-		len := ary_size.data[i].(*Node)
-		node.ty = ary_of(node.ty, len.val)
-	}
+	node.ty = read_array(node.ty)
 
 	// Read an initializer.
 	if consume('=') {
