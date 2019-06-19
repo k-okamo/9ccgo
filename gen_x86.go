@@ -59,7 +59,7 @@ func gen(fn *Function) {
 				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
 			}
 		case IR_LABEL:
-			fmt.Printf("\t.L%d:\n", ir.lhs)
+			fmt.Printf(".L%d:\n", ir.lhs)
 		case IR_LT:
 			fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 			fmt.Printf("\tsetl %s\n", regs8[ir.lhs])

@@ -93,11 +93,18 @@ func is_typename() bool {
 	return t.ty == TK_INT
 }
 
-func new_node(op int, lhs, rhs *Node) *Node {
+func new_binop(op int, lhs, rhs *Node) *Node {
 	node := new(Node)
 	node.op = op
 	node.lhs = lhs
 	node.rhs = rhs
+	return node
+}
+
+func new_expr(op int, expr *Node) *Node {
+	node := new(Node)
+	node.op = op
+	node.expr = expr
 	return node
 }
 
@@ -147,10 +154,7 @@ func primary() *Node {
 func postfix() *Node {
 	lhs := primary()
 	for consume('[') {
-		node := new(Node)
-		node.op = ND_DEREF
-		node.expr = new_node('+', lhs, primary())
-		lhs = node
+		lhs = new_expr(ND_DEREF, new_binop('+', lhs, primary()))
 		expect(']')
 	}
 	return lhs
@@ -158,22 +162,13 @@ func postfix() *Node {
 
 func unary() *Node {
 	if consume('*') {
-		node := new(Node)
-		node.op = ND_DEREF
-		node.expr = mul()
-		return node
+		return new_expr(ND_DEREF, mul())
 	}
 	if consume('&') {
-		node := new(Node)
-		node.op = ND_ADDR
-		node.expr = mul()
-		return node
+		return new_expr(ND_ADDR, mul())
 	}
 	if consume(TK_SIZEOF) {
-		node := new(Node)
-		node.op = ND_SIZEOF
-		node.expr = unary()
-		return node
+		return new_expr(ND_SIZEOF, unary())
 	}
 	return postfix()
 }
@@ -186,7 +181,7 @@ func mul() *Node {
 			return lhs
 		}
 		pos++
-		lhs = new_node(t.ty, lhs, unary())
+		lhs = new_binop(t.ty, lhs, unary())
 	}
 	return lhs
 }
@@ -217,7 +212,7 @@ func parse_add() *Node {
 			return lhs
 		}
 		pos++
-		lhs = new_node(t.ty, lhs, mul())
+		lhs = new_binop(t.ty, lhs, mul())
 	}
 	return lhs
 }
@@ -228,12 +223,12 @@ func rel() *Node {
 		t := tokens.data[pos].(*Token)
 		if t.ty == '<' {
 			pos++
-			lhs = new_node('<', lhs, parse_add())
+			lhs = new_binop('<', lhs, parse_add())
 			continue
 		}
 		if t.ty == '>' {
 			pos++
-			lhs = new_node('<', parse_add(), lhs)
+			lhs = new_binop('<', parse_add(), lhs)
 			continue
 		}
 		return lhs
@@ -248,7 +243,7 @@ func logand() *Node {
 			return lhs
 		}
 		pos++
-		lhs = new_node(ND_LOGAND, lhs, rel())
+		lhs = new_binop(ND_LOGAND, lhs, rel())
 	}
 	return lhs
 }
@@ -261,7 +256,7 @@ func logor() *Node {
 			return lhs
 		}
 		pos++
-		lhs = new_node(ND_LOGOR, lhs, logand())
+		lhs = new_binop(ND_LOGOR, lhs, logand())
 	}
 	return lhs
 }
@@ -269,7 +264,7 @@ func logor() *Node {
 func assign() *Node {
 	lhs := logor()
 	if consume('=') {
-		return new_node('=', lhs, logor())
+		return new_binop('=', lhs, logor())
 	}
 	return lhs
 }
@@ -328,9 +323,7 @@ func param() *Node {
 }
 
 func expr_stmt() *Node {
-	node := new(Node)
-	node.op = ND_EXPR_STMT
-	node.expr = assign()
+	node := new_expr(ND_EXPR_STMT, assign())
 	expect(';')
 	return node
 }
