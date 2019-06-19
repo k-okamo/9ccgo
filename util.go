@@ -58,14 +58,17 @@ func ary_of(base *Type, length int) *Type {
 }
 
 func size_of(ty *Type) int {
+	if ty.ty == CHAR {
+		return 1
+	}
 	if ty.ty == INT {
 		return 4
 	}
-	if ty.ty == ARY {
-		return size_of(ty.ary_of) * ty.len
+	if ty.ty == PTR {
+		return 8
 	}
-	// assert(ty.ty == PTR)
-	return 8
+	// assert(ty.ty == ARY)
+	return size_of(ty.ary_of) * ty.len
 }
 
 func copy_node(src, dst *Node) {

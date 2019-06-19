@@ -6,6 +6,7 @@ import (
 
 var (
 	n        int
+	argreg8  = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
 	argreg32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
 	argreg64 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 )
@@ -69,14 +70,20 @@ func gen(fn *Function) {
 		case IR_UNLESS:
 			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
 			fmt.Printf("\tje .L%d\n", ir.rhs)
+		case IR_LOAD8:
+			fmt.Printf("\tmov %s, [%s]\n", regs8[ir.lhs], regs[ir.rhs])
 		case IR_LOAD32:
 			fmt.Printf("\tmov %s, [%s]\n", regs32[ir.lhs], regs[ir.rhs])
 		case IR_LOAD64:
 			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_STORE8:
+			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs8[ir.rhs])
 		case IR_STORE32:
 			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs32[ir.rhs])
 		case IR_STORE64:
 			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_STORE8_ARG:
+			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg8[ir.rhs])
 		case IR_STORE32_ARG:
 			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg32[ir.rhs])
 		case IR_STORE64_ARG:

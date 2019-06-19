@@ -25,10 +25,13 @@ var irinfo = map[int]IRInfo{
 	IR_UNLESS:      {name: "UNLESS", ty: IR_TY_REG_LABEL},
 	IR_CALL:        {name: "CALL", ty: IR_TY_CALL},
 	IR_RETURN:      {name: "RET", ty: IR_TY_REG},
+	IR_LOAD8:       {name: "LOAD8", ty: IR_TY_REG_REG},
 	IR_LOAD32:      {name: "LOAD32", ty: IR_TY_REG_REG},
 	IR_LOAD64:      {name: "LOAD64", ty: IR_TY_REG_REG},
+	IR_STORE8:      {name: "STORE8", ty: IR_TY_REG_REG},
 	IR_STORE32:     {name: "STORE32", ty: IR_TY_REG_REG},
 	IR_STORE64:     {name: "STORE64", ty: IR_TY_REG_REG},
+	IR_STORE8_ARG:  {name: "STORE8_ARG", ty: IR_TY_IMM_IMM},
 	IR_STORE32_ARG: {name: "STORE32_ARG", ty: IR_TY_IMM_IMM},
 	IR_STORE64_ARG: {name: "STORE64_ARG", ty: IR_TY_IMM_IMM},
 	IR_KILL:        {name: "KILL", ty: IR_TY_REG},
@@ -50,10 +53,13 @@ const (
 	IR_LT
 	IR_JMP
 	IR_UNLESS
+	IR_LOAD8
 	IR_LOAD32
 	IR_LOAD64
+	IR_STORE8
 	IR_STORE32
 	IR_STORE64
+	IR_STORE8_ARG
 	IR_STORE32_ARG
 	IR_STORE64_ARG
 	IR_KILL
@@ -224,10 +230,12 @@ func gen_expr(node *Node) int {
 	case ND_LVAR:
 		{
 			r := gen_lval(node)
-			if node.ty.ty == PTR {
-				add(IR_LOAD64, r, r)
-			} else {
+			if node.ty.ty == CHAR {
+				add(IR_LOAD8, r, r)
+			} else if node.ty.ty == INT {
 				add(IR_LOAD32, r, r)
+			} else {
+				add(IR_LOAD64, r, r)
 			}
 			return r
 		}
@@ -265,10 +273,12 @@ func gen_expr(node *Node) int {
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
-			if node.lhs.ty.ty == PTR {
-				add(IR_STORE64, lhs, rhs)
-			} else {
+			if node.lhs.ty.ty == CHAR {
+				add(IR_STORE8, lhs, rhs)
+			} else if node.lhs.ty.ty == INT {
 				add(IR_STORE32, lhs, rhs)
+			} else {
+				add(IR_STORE64, lhs, rhs)
 			}
 			kill(rhs)
 			return lhs
@@ -319,10 +329,12 @@ func gen_stmt(node *Node) {
 		nreg++
 		add(IR_MOV, lhs, 0)
 		add(IR_SUB_IMM, lhs, node.offset)
-		if node.ty.ty == PTR {
-			add(IR_STORE64, lhs, rhs)
-		} else {
+		if node.ty.ty == CHAR {
+			add(IR_STORE8, lhs, rhs)
+		} else if node.ty.ty == INT {
 			add(IR_STORE32, lhs, rhs)
+		} else {
+			add(IR_STORE64, lhs, rhs)
 		}
 		kill(lhs)
 		kill(rhs)
@@ -405,11 +417,13 @@ func gen_ir(nodes *Vector) *Vector {
 		//}
 		for i := 0; i < node.args.len; i++ {
 			arg := node.args.data[i].(*Node)
-			op := IR_STORE32_ARG
-			if arg.ty.ty == PTR {
-				op = IR_STORE64_ARG
+			if arg.ty.ty == CHAR {
+				add(IR_STORE8_ARG, arg.offset, i)
+			} else if arg.ty.ty == INT {
+				add(IR_STORE32_ARG, arg.offset, i)
+			} else {
+				add(IR_STORE64_ARG, arg.offset, i)
 			}
-			add(op, arg.offset, i)
 		}
 
 		gen_stmt(node.body)

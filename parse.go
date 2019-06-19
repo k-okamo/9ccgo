@@ -1,8 +1,9 @@
 package main
 
 var (
-	pos    = 0
-	int_ty = Type{ty: INT, ptr_of: nil}
+	pos     = 0
+	int_ty  = Type{ty: INT, ptr_of: nil}
+	char_ty = Type{ty: CHAR, ptr_of: nil}
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 
 const (
 	INT = iota
+	CHAR
 	PTR
 	ARY
 )
@@ -88,9 +90,15 @@ func consume(ty int) bool {
 	return true
 }
 
-func is_typename() bool {
+func get_type() *Type {
 	t := tokens.data[pos].(*Token)
-	return t.ty == TK_INT
+	if t.ty == TK_INT {
+		return &int_ty
+	}
+	if t.ty == TK_CHAR {
+		return &char_ty
+	}
+	return nil
 }
 
 func new_binop(op int, lhs, rhs *Node) *Node {
@@ -271,11 +279,11 @@ func assign() *Node {
 
 func ttype() *Type {
 	t := tokens.data[pos].(*Token)
-	if t.ty != TK_INT {
+	ty := get_type()
+	if ty == nil {
 		error("typename expected, but got %s", t.input)
 	}
 	pos++
-	ty := &int_ty
 	for consume('*') {
 		ty = ptr_of(ty)
 	}
@@ -333,7 +341,7 @@ func stmt() *Node {
 	t := tokens.data[pos].(*Token)
 
 	switch t.ty {
-	case TK_INT:
+	case TK_INT, TK_CHAR:
 		return decl()
 	case TK_IF:
 		pos++
@@ -352,7 +360,7 @@ func stmt() *Node {
 		pos++
 		node.op = ND_FOR
 		expect('(')
-		if is_typename() {
+		if get_type() != nil {
 			node.init = decl()
 		} else {
 			node.init = expr_stmt()

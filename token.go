@@ -8,14 +8,16 @@ import (
 var (
 	tokens   *Vector
 	keywords *Map
-	symbols  = []Keyword{{name: "&&", ty: TK_LOGAND},
-		{name: "||", ty: TK_LOGOR},
+	symbols  = []Keyword{
+		{name: "char", ty: TK_CHAR},
 		{name: "else", ty: TK_ELSE},
 		{name: "for", ty: TK_FOR},
 		{name: "if", ty: TK_IF},
-		{name: "return", ty: TK_RETURN},
 		{name: "int", ty: TK_INT},
+		{name: "return", ty: TK_RETURN},
 		{name: "sizeof", ty: TK_SIZEOF},
+		{name: "&&", ty: TK_LOGAND},
+		{name: "||", ty: TK_LOGOR},
 	}
 )
 
@@ -23,6 +25,7 @@ const (
 	TK_NUM    = iota + 256 // Number literal
 	TK_IDENT               // Identifier
 	TK_INT                 // "int"
+	TK_CHAR                // "char"
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
 	TK_FOR                 // "for"
