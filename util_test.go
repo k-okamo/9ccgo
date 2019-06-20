@@ -66,3 +66,23 @@ func Test_strncmp(t *testing.T) {
 		}
 	}
 }
+
+func Test_isgraph(t *testing.T) {
+	cases := []struct {
+		c   rune
+		ret bool
+	}{
+		{'a', true},
+		{'A', true},
+		{'1', true},
+		{' ', false},
+		{'\t', false},
+	}
+
+	for _, c := range cases {
+		ret := isgraph(c.c)
+		if ret != c.ret {
+			t.Errorf("c: %s, expected: %v, got: %v\n", string(c.c), ret, c.ret)
+		}
+	}
+}

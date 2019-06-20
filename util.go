@@ -99,7 +99,7 @@ func copy_node(src, dst *Node) {
 
 	// Vector
 	copy_vector(src.stmts, dst.stmts)
-	copy_vector(src.strings, dst.strings)
+	copy_vector(src.globals, dst.globals)
 	copy_vector(src.args, dst.args)
 }
 
@@ -250,6 +250,10 @@ func strncmp(s1, s2 string, n int) int {
 		return -1
 	}
 	return strncmp(s1[1:], s2[1:], n-1)
+}
+
+func isgraph(c rune) bool {
+	return 0x21 <= c && c <= 0x7e
 }
 
 func IsAlpha(c rune) bool {

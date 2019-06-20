@@ -57,7 +57,7 @@ type Node struct {
 
 	// Function definition
 	stacksize int
-	strings   *Vector
+	globals   *Vector
 
 	// Local variable
 	offset int

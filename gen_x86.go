@@ -11,6 +11,29 @@ var (
 	argreg64 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 )
 
+func escape(s string, length int) string {
+	buf := make([]rune, length*4)
+	i := 0
+	for _, c := range s {
+		if c == '\\' {
+			buf[i] = '\\'
+			i++
+			buf[i] = '\\'
+			i++
+		} else if isgraph(c) || c == ' ' {
+			buf[i] = c
+			i++
+		} else {
+			format := fmt.Sprintf("\\%03o", c)
+			for _, cc := range format {
+				buf[i] = cc
+				i++
+			}
+		}
+	}
+	return string(buf)
+}
+
 func gen_label() string {
 	buf := fmt.Sprintf(".L%d", n)
 	n++
@@ -19,11 +42,11 @@ func gen_label() string {
 
 func gen(fn *Function) {
 	fmt.Printf(".data\n")
-	for i := 0; i < fn.strings.len; i++ {
-		node := fn.strings.data[i].(*Node)
+	for i := 0; i < fn.globals.len; i++ {
+		v := fn.globals.data[i].(*Var)
 		// assert(node.op == ND_STR)
-		fmt.Printf("%s:\n", node.name)
-		fmt.Printf("\t.asciz \"%s\"\n", node.str)
+		fmt.Printf("%s:\n", v.name)
+		fmt.Printf("\t.ascii \"%s\"\n", escape(v.data, v.len))
 	}
 
 	ret := format(".Lend%d", nlabel)

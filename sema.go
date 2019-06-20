@@ -2,7 +2,7 @@ package main
 
 var (
 	vars      *Map
-	strings   *Vector
+	globals   *Vector
 	stacksize int
 	str_label int
 )
@@ -16,6 +16,8 @@ type Var struct {
 
 	// global
 	name string
+	data string
+	len  int
 }
 
 func swap(p, q **Node) {
@@ -38,15 +40,19 @@ func walk(node *Node, decay bool) *Node {
 		return node
 	case ND_STR:
 		{
-			name := format(".L.str%d", str_label)
+			v := new(Var)
+			vec_push(globals, v)
+			v.ty = node.ty
+			v.is_local = false
+			v.name = format(".L.str%d", str_label)
 			str_label++
-			node.name = name
-			vec_push(strings, node)
+			v.data = node.str
+			v.len = len(node.str) + 1
 
 			ret := new(Node)
 			ret.op = ND_GVAR
 			ret.ty = node.ty
-			ret.name = name
+			ret.name = v.name
 			return walk(ret, decay)
 		}
 	case ND_IDENT:
@@ -180,10 +186,10 @@ func sema(nodes *Vector) {
 		//assert(node.op == ND_FUNC)
 
 		vars = new_map()
-		strings = new_vec()
+		globals = new_vec()
 		stacksize = 0
 		walk(node, true)
 		node.stacksize = stacksize
-		node.strings = strings
+		node.globals = globals
 	}
 }

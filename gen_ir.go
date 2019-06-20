@@ -101,7 +101,7 @@ type IRInfo struct {
 type Function struct {
 	name      string
 	stacksize int
-	strings   *Vector
+	globals   *Vector
 	ir        *Vector
 }
 
@@ -448,7 +448,7 @@ func gen_ir(nodes *Vector) *Vector {
 		fn.name = node.name
 		fn.stacksize = node.stacksize
 		fn.ir = code
-		fn.strings = node.strings
+		fn.globals = node.globals
 		vec_push(v, fn)
 	}
 	return v
