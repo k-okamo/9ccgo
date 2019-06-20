@@ -47,10 +47,14 @@ func swap(p, q **Node) {
 	*q = r
 }
 
-func addr_of(base *Node, ty *Type) *Node {
+func maybe_decay(base *Node, decay bool) *Node {
+	if !decay || base.ty.ty != ARY {
+		return base
+	}
+
 	node := new(Node)
 	node.op = ND_ADDR
-	node.ty = ptr_of(ty)
+	node.ty = ptr_of(base.ty.ary_of)
 	node.expr = base
 	return node
 }
@@ -74,7 +78,7 @@ func walk(env *Env, node *Node, decay bool) *Node {
 			ret.op = ND_GVAR
 			ret.ty = node.ty
 			ret.name = v.name
-			return walk(env, ret, decay)
+			return maybe_decay(ret, decay)
 		}
 	case ND_IDENT:
 		{
@@ -82,20 +86,13 @@ func walk(env *Env, node *Node, decay bool) *Node {
 			if v == nil {
 				error("undetined variable: %s", node.name)
 			}
-			node.op = ND_LVAR
-			node.offset = v.offset
 
-			if decay && v.ty.ty == ARY {
-				return addr_of(node, v.ty.ary_of)
-			}
-			node.ty = v.ty
-			return node
+			ret := new(Node)
+			ret.op = ND_LVAR
+			ret.offset = v.offset
+			ret.ty = v.ty
+			return maybe_decay(ret, decay)
 		}
-	case ND_GVAR:
-		if decay && node.ty.ty == ARY {
-			return addr_of(node, node.ty.ary_of)
-		}
-		return node
 	case ND_VARDEF:
 		{
 			stacksize += size_of(node.ty)
