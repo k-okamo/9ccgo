@@ -145,7 +145,7 @@ func primary() *Node {
 		node.ty = ary_of(&char_ty, len(t.str))
 		node.op = ND_STR
 		node.data = t.str
-		node.len = len(t.str) + 1
+		node.len = t.len
 		return node
 	}
 

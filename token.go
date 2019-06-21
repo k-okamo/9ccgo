@@ -41,14 +41,57 @@ const (
 type Token struct {
 	ty    int    // Token type
 	val   int    // Number literal
-	str   string // String literal
 	name  string // Identifier
 	input string // Token string (for error reporting)
+
+	// String literal
+	str string
+	len int
 }
 
 type Keyword struct {
 	name string
 	ty   int
+}
+
+func read_string(sb *StringBuilder, s string) int {
+	i := 0
+	c := []rune(s)[0]
+	for c != '"' {
+		if i == len(s) {
+			error("premature end of input")
+		}
+		if c != '\\' {
+			sb_add(sb, string(c))
+			i++
+			c = []rune(s)[i]
+			continue
+		}
+
+		i++
+		switch {
+		case c == 'a':
+			sb_add(sb, "\a")
+		case c == 'b':
+			sb_add(sb, "\b")
+		case c == 'f':
+			sb_add(sb, "\f")
+		case c == 'n':
+			sb_add(sb, "\n")
+		case c == 'r':
+			sb_add(sb, "\r")
+		case c == 't':
+			sb_add(sb, "\t")
+		case c == 'v':
+			sb_add(sb, "\v")
+		case c == '0':
+			error("PREMATUE end of input.")
+		default:
+			sb_add(sb, s)
+		}
+		i++
+	}
+	return i + 1
 }
 
 func add_token(v *Vector, ty int, input string) *Token {
@@ -77,20 +120,11 @@ loop:
 			t := add_token(v, TK_STR, s)
 			s = s[1:]
 
-			length := 0
-			c = []rune(s)[length]
-			for c != '"' {
-				length++
-				if length == len(s) {
-					break
-				}
-				c = []rune(s)[length]
-			}
-			if length == len(s) {
-				error("prematue end of input")
-			}
-			t.str = strndup(s, length)
-			s = s[length+1:]
+			sb := new_sb()
+			i := read_string(sb, s)
+			s = s[i:]
+			t.str = sb_get(sb)
+			t.len = sb.len
 			continue
 		}
 
