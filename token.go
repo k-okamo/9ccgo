@@ -12,6 +12,7 @@ var (
 		{name: "char", ty: TK_CHAR},
 		{name: "do", ty: TK_DO},
 		{name: "else", ty: TK_ELSE},
+		{name: "extern", ty: TK_EXTERN},
 		{name: "for", ty: TK_FOR},
 		{name: "if", ty: TK_IF},
 		{name: "int", ty: TK_INT},
@@ -29,6 +30,7 @@ const (
 	TK_NUM    = iota + 256 // Number literal
 	TK_STR                 // String literal
 	TK_IDENT               // Identifier
+	TK_EXTERN              // "extern"
 	TK_INT                 // "int"
 	TK_CHAR                // "char"
 	TK_IF                  // "if"

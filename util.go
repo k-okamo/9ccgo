@@ -90,6 +90,7 @@ func copy_node(src, dst *Node) {
 	dst.name = src.name
 	dst.stacksize = src.stacksize
 	dst.offset = src.offset
+	dst.is_extern = src.is_extern
 
 	// Node
 	copy_node(src.lhs, dst.lhs)

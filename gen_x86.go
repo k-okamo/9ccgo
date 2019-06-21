@@ -161,6 +161,9 @@ func gen_x86(globals, fns *Vector) {
 	fmt.Printf(".data\n")
 	for i := 0; i < globals.len; i++ {
 		v := globals.data[i].(*Var)
+		if v.is_extern {
+			continue
+		}
 		fmt.Printf("%s:\n", v.name)
 		fmt.Printf("\t.ascii \"%s\"\n", escape(v.data, v.len))
 	}

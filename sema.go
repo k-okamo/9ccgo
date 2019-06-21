@@ -19,9 +19,10 @@ type Var struct {
 	offset int
 
 	// global
-	name string
-	data string
-	len  int
+	name      string
+	is_extern bool
+	data      string
+	len       int
 }
 
 func new_env(next *Env) *Env {
@@ -35,7 +36,7 @@ func new_global(ty *Type, name, data string, len int) *Var {
 	v := new(Var)
 	v.ty = ty
 	v.is_local = false
-	v.name = format(".L.str%d", str_label)
+	v.name = name
 	str_label++
 	v.data = data
 	v.len = len
@@ -235,6 +236,7 @@ func sema(nodes *Vector) *Vector {
 
 		if node.op == ND_VARDEF {
 			v := new_global(node.ty, node.name, node.data, node.len)
+			v.is_extern = node.is_extern
 			vec_push(globals, v)
 			map_put(topenv.vars, node.name, v)
 			continue

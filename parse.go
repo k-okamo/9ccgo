@@ -49,8 +49,9 @@ type Node struct {
 	name string // Identifier
 
 	// Global variable
-	data string
-	len  int
+	is_extern bool
+	data      string
+	len       int
 
 	// "if" ( cond ) then "else" els
 	// "for" ( init; cond; inc ) body
@@ -451,7 +452,7 @@ func compound_stmt() *Node {
 }
 
 func toplevel() *Node {
-
+	is_extern := consume(TK_EXTERN)
 	ty := ttype()
 	if ty == nil {
 		t := tokens.data[pos].(*Token)
@@ -492,8 +493,13 @@ func toplevel() *Node {
 	node.op = ND_VARDEF
 	node.ty = read_array(ty)
 	node.name = name
-	node.data = ""
-	node.len = size_of(node.ty)
+
+	if is_extern {
+		node.is_extern = true
+	} else {
+		node.data = ""
+		node.len = size_of(node.ty)
+	}
 	expect(';')
 	return node
 }
