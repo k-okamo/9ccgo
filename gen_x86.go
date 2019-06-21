@@ -100,6 +100,9 @@ func gen(fn *Function) {
 			emit_cmp(ir, "setl")
 		case IR_JMP:
 			fmt.Printf("\tjmp .L%d\n", ir.lhs)
+		case IR_IF:
+			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
+			fmt.Printf("\tjne .L%d\n", ir.rhs)
 		case IR_UNLESS:
 			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
 			fmt.Printf("\tje .L%d\n", ir.rhs)

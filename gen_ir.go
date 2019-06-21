@@ -18,6 +18,7 @@ var irinfo = map[int]IRInfo{
 	IR_DIV:         {name: "DIV", ty: IR_TY_REG_REG},
 	IR_IMM:         {name: "MOV", ty: IR_TY_REG_IMM},
 	IR_SUB_IMM:     {name: "SUB", ty: IR_TY_REG_IMM},
+	IR_IF:          {name: "IF", ty: IR_TY_REG_LABEL},
 	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:       {name: "", ty: IR_TY_LABEL},
 	IR_LABEL_ADDR:  {name: "", ty: IR_TY_LABEL_ADDR},
@@ -58,6 +59,7 @@ const (
 	IR_NE
 	IR_LT
 	IR_JMP
+	IR_IF
 	IR_UNLESS
 	IR_LOAD8
 	IR_LOAD32
@@ -420,6 +422,16 @@ func gen_stmt(node *Node) {
 		kill(gen_expr(node.inc))
 		add(IR_JMP, x, -1)
 		label(y)
+		return
+	}
+	if node.op == ND_DO_WHILE {
+		x := nlabel
+		nlabel++
+		label(x)
+		gen_stmt(node.body)
+		r := gen_expr(node.cond)
+		add(IR_IF, r, x)
+		kill(r)
 		return
 	}
 	if node.op == ND_RETURN {

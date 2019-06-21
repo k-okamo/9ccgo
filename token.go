@@ -10,12 +10,14 @@ var (
 	keywords *Map
 	symbols  = []Keyword{
 		{name: "char", ty: TK_CHAR},
+		{name: "do", ty: TK_DO},
 		{name: "else", ty: TK_ELSE},
 		{name: "for", ty: TK_FOR},
 		{name: "if", ty: TK_IF},
 		{name: "int", ty: TK_INT},
 		{name: "return", ty: TK_RETURN},
 		{name: "sizeof", ty: TK_SIZEOF},
+		{name: "while", ty: TK_WHILE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "||", ty: TK_LOGOR},
 		{name: "==", ty: TK_EQ},
@@ -32,6 +34,8 @@ const (
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
 	TK_FOR                 // "for"
+	TK_DO                  // "do"
+	TK_WHILE               // "while"
 	TK_EQ                  // ==
 	TK_NE                  // !=
 	TK_LOGOR               // ||
