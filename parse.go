@@ -17,6 +17,8 @@ const (
 	ND_FOR                    // "for"
 	ND_ADDR                   // address-of operator ("&")
 	ND_DEREF                  // pointer dereference ("*")
+	ND_EQ                     // ==
+	ND_NE                     // !=
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
@@ -259,15 +261,33 @@ func rel() *Node {
 	}
 }
 
-func logand() *Node {
+func equality() *Node {
 	lhs := rel()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty == TK_EQ {
+			pos++
+			lhs = new_binop(ND_EQ, lhs, rel())
+			continue
+		}
+		if t.ty == TK_NE {
+			pos++
+			lhs = new_binop(ND_NE, lhs, rel())
+			continue
+		}
+		return lhs
+	}
+}
+
+func logand() *Node {
+	lhs := equality()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != TK_LOGAND {
 			return lhs
 		}
 		pos++
-		lhs = new_binop(ND_LOGAND, lhs, rel())
+		lhs = new_binop(ND_LOGAND, lhs, equality())
 	}
 	return lhs
 }

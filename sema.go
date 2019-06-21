@@ -162,7 +162,7 @@ func walk(env *Env, node *Node, decay bool) *Node {
 		node.rhs = walk(env, node.rhs, true)
 		node.ty = node.lhs.ty
 		return node
-	case '*', '/', '<', ND_LOGAND, ND_LOGOR:
+	case '*', '/', '<', ND_EQ, ND_NE, ND_LOGAND, ND_LOGOR:
 		node.lhs = walk(env, node.lhs, true)
 		node.rhs = walk(env, node.rhs, true)
 		node.ty = node.lhs.ty

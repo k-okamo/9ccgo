@@ -40,6 +40,12 @@ func gen_label() string {
 	return buf
 }
 
+func emit_cmp(ir *IR, insn string) {
+	fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+	fmt.Printf("\t%s %s\n", insn, regs8[ir.lhs])
+	fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
+}
+
 func gen(fn *Function) {
 
 	ret := format(".Lend%d", nlabel)
@@ -86,10 +92,12 @@ func gen(fn *Function) {
 			fmt.Printf(".L%d:\n", ir.lhs)
 		case IR_LABEL_ADDR:
 			fmt.Printf("\tlea %s, %s\n", regs[ir.lhs], ir.name)
+		case IR_EQ:
+			emit_cmp(ir, "sete")
+		case IR_NE:
+			emit_cmp(ir, "setne")
 		case IR_LT:
-			fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
-			fmt.Printf("\tsetl %s\n", regs8[ir.lhs])
-			fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
+			emit_cmp(ir, "setl")
 		case IR_JMP:
 			fmt.Printf("\tjmp .L%d\n", ir.lhs)
 		case IR_UNLESS:

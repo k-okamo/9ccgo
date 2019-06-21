@@ -21,6 +21,8 @@ var irinfo = map[int]IRInfo{
 	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:       {name: "", ty: IR_TY_LABEL},
 	IR_LABEL_ADDR:  {name: "", ty: IR_TY_LABEL_ADDR},
+	IR_EQ:          {name: "EQ", ty: IR_TY_REG_REG},
+	IR_NE:          {name: "NE", ty: IR_TY_REG_REG},
 	IR_LT:          {name: "LT", ty: IR_TY_REG_REG},
 	IR_JMP:         {name: "JMP", ty: IR_TY_JMP},
 	IR_UNLESS:      {name: "UNLESS", ty: IR_TY_REG_LABEL},
@@ -52,6 +54,8 @@ const (
 	IR_CALL
 	IR_LABEL
 	IR_LABEL_ADDR
+	IR_EQ
+	IR_NE
 	IR_LT
 	IR_JMP
 	IR_UNLESS
@@ -206,6 +210,22 @@ func gen_expr(node *Node) int {
 			nreg++
 			add(IR_IMM, r, node.val)
 			return r
+		}
+	case ND_EQ:
+		{
+			lhs := gen_expr(node.lhs)
+			rhs := gen_expr(node.rhs)
+			add(IR_EQ, lhs, rhs)
+			kill(rhs)
+			return lhs
+		}
+	case ND_NE:
+		{
+			lhs := gen_expr(node.lhs)
+			rhs := gen_expr(node.rhs)
+			add(IR_NE, lhs, rhs)
+			kill(rhs)
+			return lhs
 		}
 	case ND_LOGAND:
 		{

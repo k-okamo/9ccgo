@@ -18,6 +18,8 @@ var (
 		{name: "sizeof", ty: TK_SIZEOF},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "||", ty: TK_LOGOR},
+		{name: "==", ty: TK_EQ},
+		{name: "!=", ty: TK_NE},
 	}
 )
 
@@ -30,6 +32,8 @@ const (
 	TK_IF                  // "if"
 	TK_ELSE                // "else"
 	TK_FOR                 // "for"
+	TK_EQ                  // ==
+	TK_NE                  // !=
 	TK_LOGOR               // ||
 	TK_LOGAND              // &&
 	TK_RETURN              // "return"
