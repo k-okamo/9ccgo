@@ -426,6 +426,11 @@ func gen_ir(nodes *Vector) *Vector {
 
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)
+
+		if node.op == ND_VARDEF {
+			continue
+		}
+
 		//assert(node.op == ND_FUNC)
 
 		code = new_vec()

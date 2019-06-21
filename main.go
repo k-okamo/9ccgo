@@ -39,7 +39,7 @@ func main() {
 	tokens = tokenize(input)
 	print_tokens(tokens) // Debug
 	nodes := parse(tokens)
-	sema(nodes)
+	globals := sema(nodes)
 	fns := gen_ir(nodes)
 
 	print_irs(fns) // Debug
@@ -52,5 +52,5 @@ func main() {
 		dump_ir(fns)
 	}
 
-	gen_x86(fns)
+	gen_x86(globals, fns)
 }

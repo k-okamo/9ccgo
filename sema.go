@@ -31,6 +31,17 @@ func new_env(next *Env) *Env {
 	return env
 }
 
+func new_global(ty *Type, name, data string, len int) *Var {
+	v := new(Var)
+	v.ty = ty
+	v.is_local = false
+	v.name = format(".L.str%d", str_label)
+	str_label++
+	v.data = data
+	v.len = len
+	return v
+}
+
 func find(env *Env, name string) *Var {
 	for ; env != nil; env = env.next {
 		v := map_get(env.vars, name)
@@ -59,20 +70,23 @@ func maybe_decay(base *Node, decay bool) *Node {
 	return node
 }
 
+func check_lval(node *Node) {
+	op := node.op
+	if op == ND_LVAR || op == ND_GVAR || op == ND_DEREF {
+		return
+	}
+	error("not an lvalue: %d (%s)", op, node.name)
+}
+
 func walk(env *Env, node *Node, decay bool) *Node {
 	switch node.op {
 	case ND_NUM:
 		return node
 	case ND_STR:
 		{
-			v := new(Var)
-			vec_push(globals, v)
-			v.ty = node.ty
-			v.is_local = false
-			v.name = format(".L.str%d", str_label)
+			v := new_global(node.ty, format(".L.str%d", str_label), node.data, node.len)
 			str_label++
-			v.data = node.str
-			v.len = len(node.str) + 1
+			vec_push(globals, v)
 
 			ret := new(Node)
 			ret.op = ND_GVAR
@@ -87,10 +101,18 @@ func walk(env *Env, node *Node, decay bool) *Node {
 				error("undetined variable: %s", node.name)
 			}
 
+			if v.is_local {
+				ret := new(Node)
+				ret.op = ND_LVAR
+				ret.offset = v.offset
+				ret.ty = v.ty
+				return maybe_decay(ret, decay)
+			}
+
 			ret := new(Node)
-			ret.op = ND_LVAR
-			ret.offset = v.offset
+			ret.op = ND_GVAR
 			ret.ty = v.ty
+			ret.name = v.name
 			return maybe_decay(ret, decay)
 		}
 	case ND_VARDEF:
@@ -136,9 +158,7 @@ func walk(env *Env, node *Node, decay bool) *Node {
 		return node
 	case '=':
 		node.lhs = walk(env, node.lhs, false)
-		if node.lhs.op != ND_LVAR && node.lhs.op != ND_DEREF {
-			error("not an lvalue: %d (%s)", node.op, node.name)
-		}
+		check_lval(node.lhs)
 		node.rhs = walk(env, node.rhs, true)
 		node.ty = node.lhs.ty
 		return node
@@ -149,6 +169,7 @@ func walk(env *Env, node *Node, decay bool) *Node {
 		return node
 	case ND_ADDR:
 		node.expr = walk(env, node.expr, true)
+		check_lval(node.expr)
 		node.ty = ptr_of(node.expr.ty)
 		return node
 	case ND_DEREF:
@@ -201,15 +222,26 @@ func walk(env *Env, node *Node, decay bool) *Node {
 	return nil
 }
 
-func sema(nodes *Vector) {
+func sema(nodes *Vector) *Vector {
+	globals = new_vec()
+	topenv := new_env(nil)
+
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)
+
+		if node.op == ND_VARDEF {
+			v := new_global(node.ty, node.name, node.data, node.len)
+			vec_push(globals, v)
+			map_put(topenv.vars, node.name, v)
+			continue
+		}
+
 		//assert(node.op == ND_FUNC)
 
-		globals = new_vec()
 		stacksize = 0
-		walk(new_env(nil), node, true)
+		walk(topenv, node, true)
 		node.stacksize = stacksize
-		node.globals = globals
 	}
+
+	return globals
 }

@@ -40,11 +40,14 @@ type Node struct {
 	lhs   *Node   // left-hand side
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
-	str   string  // String literal
 	expr  *Node   // "return" or expression stmt
 	stmts *Vector // Compound statement
 
 	name string // Identifier
+
+	// Global variable
+	data string
+	len  int
 
 	// "if" ( cond ) then "else" els
 	// "for" ( init; cond; inc ) body
@@ -141,7 +144,8 @@ func primary() *Node {
 	if t.ty == TK_STR {
 		node.ty = ary_of(&char_ty, len(t.str))
 		node.op = ND_STR
-		node.str = t.str
+		node.data = t.str
+		node.len = len(t.str) + 1
 		return node
 	}
 
@@ -415,33 +419,51 @@ func compound_stmt() *Node {
 	return node
 }
 
-func function() *Node {
-	node := new(Node)
-	node.op = ND_FUNC
-	node.args = new_vec()
+func toplevel() *Node {
+
+	ty := ttype()
+	if ty == nil {
+		t := tokens.data[pos].(*Token)
+		error("typename expected, but got %s", t.input)
+	}
 
 	t := tokens.data[pos].(*Token)
-	if t.ty != TK_INT {
-		error("function return type expected, but got %s", t.input)
-	}
-	pos++
-	t = tokens.data[pos].(*Token)
 	if t.ty != TK_IDENT {
-		error("function name expected, but got %s", t.input)
+		error("function or variable name expected, but got %s", t.input)
 	}
-	node.name = t.name
+
+	name := t.name
 	pos++
 
-	expect('(')
-	if !consume(')') {
-		vec_push(node.args, param())
-		for consume(',') {
+	// Function
+	if consume('(') {
+		node := new(Node)
+		node.op = ND_FUNC
+		node.ty = ty
+		node.name = name
+		node.args = new_vec()
+
+		if !consume(')') {
 			vec_push(node.args, param())
+			for consume(',') {
+				vec_push(node.args, param())
+			}
+			expect(')')
 		}
-		expect(')')
+
+		expect('{')
+		node.body = compound_stmt()
+		return node
 	}
-	expect('{')
-	node.body = compound_stmt()
+
+	// Global variable
+	node := new(Node)
+	node.op = ND_VARDEF
+	node.ty = read_array(ty)
+	node.name = name
+	node.data = ""
+	node.len = size_of(node.ty)
+	expect(';')
 	return node
 }
 
@@ -450,7 +472,7 @@ func parse(tokens_ *Vector) *Vector {
 	pos = 0
 	v := new_vec()
 	for (tokens.data[pos].(*Token)).ty != TK_EOF {
-		vec_push(v, function())
+		vec_push(v, toplevel())
 	}
 	return v
 }

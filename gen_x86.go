@@ -41,18 +41,10 @@ func gen_label() string {
 }
 
 func gen(fn *Function) {
-	fmt.Printf(".data\n")
-	for i := 0; i < fn.globals.len; i++ {
-		v := fn.globals.data[i].(*Var)
-		// assert(node.op == ND_STR)
-		fmt.Printf("%s:\n", v.name)
-		fmt.Printf("\t.ascii \"%s\"\n", escape(v.data, v.len))
-	}
 
 	ret := format(".Lend%d", nlabel)
 	nlabel++
 
-	fmt.Printf(".text\n")
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)
 	fmt.Printf("\tpush rbp\n")
@@ -152,9 +144,17 @@ func gen(fn *Function) {
 	fmt.Printf("\tret\n")
 }
 
-func gen_x86(fns *Vector) {
+func gen_x86(globals, fns *Vector) {
 	fmt.Printf(".intel_syntax noprefix\n")
 
+	fmt.Printf(".data\n")
+	for i := 0; i < globals.len; i++ {
+		v := globals.data[i].(*Var)
+		fmt.Printf("%s:\n", v.name)
+		fmt.Printf("\t.ascii \"%s\"\n", escape(v.data, v.len))
+	}
+
+	fmt.Printf(".text\n")
 	for i := 0; i < fns.len; i++ {
 		gen(fns.data[i].(*Function))
 	}
