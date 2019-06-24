@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	code   *Vector
-	nreg   int
-	nlabel int
+	code         *Vector
+	nreg         int
+	nlabel       int
+	return_label int
+	return_reg   int
 )
 
 var irinfo = map[int]IRInfo{
@@ -311,6 +313,23 @@ func gen_expr(node *Node) int {
 			}
 			return r
 		}
+	case ND_STMT_EXPR:
+		{
+			orig_label := return_label
+			orig_reg := return_reg
+			return_label = nlabel
+			nlabel++
+			r := nreg
+			nreg++
+			return_reg = r
+
+			gen_stmt(node.stmt)
+			label(return_label)
+
+			return_label = orig_label
+			return_reg = orig_reg
+			return r
+		}
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
@@ -436,6 +455,15 @@ func gen_stmt(node *Node) {
 	}
 	if node.op == ND_RETURN {
 		r := gen_expr(node.expr)
+
+		// Statement expression (GNU extension)
+		if return_label != 0 {
+			add(IR_MOV, return_reg, r)
+			kill(r)
+			add(IR_JMP, return_label, -1)
+			return
+		}
+
 		add(IR_RETURN, r, -1)
 		kill(r)
 		return
@@ -455,6 +483,7 @@ func gen_stmt(node *Node) {
 
 func gen_ir(nodes *Vector) *Vector {
 	v := new_vec()
+	nlabel = 1
 
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)

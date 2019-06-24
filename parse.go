@@ -28,6 +28,7 @@ const (
 	ND_FUNC                   // Function definition
 	ND_COMP_STMT              // Compound statement
 	ND_EXPR_STMT              // Expressions statement
+	ND_STMT_EXPR              // Statement expression (GUN extn.)
 )
 
 const (
@@ -44,6 +45,7 @@ type Node struct {
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
 	expr  *Node   // "return" or expression stmt
+	stmt  *Node   // Statement expression
 	stmts *Vector // Compound statement
 
 	name string // Identifier
@@ -132,6 +134,13 @@ func primary() *Node {
 	pos++
 
 	if t.ty == '(' {
+		if consume('{') {
+			node := new(Node)
+			node.op = ND_STMT_EXPR
+			node.stmt = compound_stmt()
+			expect(')')
+			return node
+		}
 		node := assign()
 		expect(')')
 		return node
