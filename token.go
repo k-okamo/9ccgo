@@ -24,6 +24,17 @@ var (
 		{name: "==", ty: TK_EQ},
 		{name: "!=", ty: TK_NE},
 	}
+	escaped = map[rune]int{
+		'a': '\a',
+		'b': '\b',
+		'f': '\f',
+		'n': '\n',
+		'r': '\r',
+		't': '\t',
+		'v': '\v',
+		'e': '\033',
+		'E': '\033',
+	}
 )
 
 const (
@@ -64,6 +75,38 @@ type Keyword struct {
 	ty   int
 }
 
+func read_char(result *int, s string) int {
+
+	i := 0
+	c := []rune(s)[0]
+	if c != '\\' {
+		*result = int(c)
+		i++
+		c = []rune(s)[i]
+	} else {
+		i++
+		c = []rune(s)[i]
+		if i == len(s) {
+			error("premature end of input")
+		}
+		esc, ok := escaped[c]
+		if ok {
+			*result = esc
+		} else {
+			*result = int(c)
+		}
+		i++
+		c = []rune(s)[i]
+	}
+
+	if c != '\'' {
+		error("unclosed character literal")
+	}
+	i++
+
+	return i
+}
+
 func read_string(sb *StringBuilder, s string) int {
 	i := 0
 	c := []rune(s)[0]
@@ -72,7 +115,6 @@ func read_string(sb *StringBuilder, s string) int {
 			error("premature end of input")
 		}
 
-		//c = []rune(s)[i]
 		if c != '\\' {
 			sb_add(sb, string(c))
 			i++
@@ -83,20 +125,9 @@ func read_string(sb *StringBuilder, s string) int {
 		// c == '\\'
 		i++
 		c = []rune(s)[i]
-		if c == 'a' {
-			sb_add(sb, "\a")
-		} else if c == 'b' {
-			sb_add(sb, "\b")
-		} else if c == 'f' {
-			sb_add(sb, "\f")
-		} else if c == 'n' {
-			sb_add(sb, "\n")
-		} else if c == 'r' {
-			sb_add(sb, "\r")
-		} else if c == 't' {
-			sb_add(sb, "\t")
-		} else if c == 'v' {
-			sb_add(sb, "\v")
+		esc, ok := escaped[c]
+		if ok {
+			sb_add(sb, string(esc))
 		} else {
 			sb_add(sb, string(c))
 		}
@@ -168,6 +199,15 @@ loop:
 		c := []rune(s)[0]
 		if unicode.IsSpace(c) {
 			s = s[1:]
+			continue
+		}
+
+		// Character literal
+		if c == '\'' {
+			t := add_token(v, TK_NUM, s)
+			s = s[1:]
+			r := read_char(&t.val, s)
+			s = s[r:]
 			continue
 		}
 
