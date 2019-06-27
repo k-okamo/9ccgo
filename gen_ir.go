@@ -326,7 +326,7 @@ func gen_expr(node *Node) int {
 			nreg++
 			return_reg = r
 
-			gen_stmt(node.stmt)
+			gen_stmt(node.body)
 			label(return_label)
 
 			return_label = orig_label
@@ -382,6 +382,9 @@ func gen_expr(node *Node) int {
 }
 
 func gen_stmt(node *Node) {
+	if node.op == ND_NULL {
+		return
+	}
 
 	if node.op == ND_VARDEF {
 		if node.init == nil {
@@ -442,7 +445,7 @@ func gen_stmt(node *Node) {
 		add(IR_UNLESS, r, y)
 		kill(r)
 		gen_stmt(node.body)
-		kill(gen_expr(node.inc))
+		gen_stmt(node.inc)
 		add(IR_JMP, x, -1)
 		label(y)
 		return

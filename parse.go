@@ -1,9 +1,10 @@
 package main
 
 var (
-	pos     = 0
-	int_ty  = Type{ty: INT, ptr_of: nil}
-	char_ty = Type{ty: CHAR, ptr_of: nil}
+	pos       = 0
+	int_ty    = Type{ty: INT, ptr_of: nil}
+	char_ty   = Type{ty: CHAR, ptr_of: nil}
+	null_stmt = Node{op: ND_NULL}
 )
 
 const (
@@ -29,6 +30,7 @@ const (
 	ND_COMP_STMT              // Compound statement
 	ND_EXPR_STMT              // Expressions statement
 	ND_STMT_EXPR              // Statement expression (GUN extn.)
+	ND_NULL                   // Null statement
 )
 
 const (
@@ -45,7 +47,6 @@ type Node struct {
 	rhs   *Node   // right-hand side
 	val   int     // Number literal
 	expr  *Node   // "return" or expression stmt
-	stmt  *Node   // Statement expression
 	stmts *Vector // Compound statement
 
 	name string // Identifier
@@ -137,7 +138,7 @@ func primary() *Node {
 		if consume('{') {
 			node := new(Node)
 			node.op = ND_STMT_EXPR
-			node.stmt = compound_stmt()
+			node.body = compound_stmt()
 			expect(')')
 			return node
 		}
@@ -414,7 +415,17 @@ func stmt() *Node {
 		}
 		node.cond = assign()
 		expect(';')
-		node.inc = assign()
+		node.inc = new_expr(ND_EXPR_STMT, assign())
+		expect(')')
+		node.body = stmt()
+		return node
+	case TK_WHILE:
+		pos++
+		node.op = ND_FOR
+		node.init = &null_stmt
+		node.inc = &null_stmt
+		expect('(')
+		node.cond = assign()
 		expect(')')
 		node.body = stmt()
 		return node

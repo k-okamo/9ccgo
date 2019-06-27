@@ -96,7 +96,6 @@ func copy_node(src, dst *Node) {
 	copy_node(src.lhs, dst.lhs)
 	copy_node(src.rhs, dst.rhs)
 	copy_node(src.expr, dst.expr)
-	copy_node(src.stmt, dst.stmt)
 	copy_node(src.cond, dst.cond)
 	copy_node(src.then, dst.then)
 	copy_node(src.els, dst.els)
