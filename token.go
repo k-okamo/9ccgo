@@ -71,6 +71,50 @@ func read_string(sb *StringBuilder, s string) int {
 		if i == len(s) {
 			error("premature end of input")
 		}
+
+		//c = []rune(s)[i]
+		if c != '\\' {
+			sb_add(sb, string(c))
+			i++
+			c = []rune(s)[i]
+			continue
+		}
+
+		// c == '\\'
+		i++
+		c = []rune(s)[i]
+		if c == 'a' {
+			sb_add(sb, "\a")
+		} else if c == 'b' {
+			sb_add(sb, "\b")
+		} else if c == 'f' {
+			sb_add(sb, "\f")
+		} else if c == 'n' {
+			sb_add(sb, "\n")
+		} else if c == 'r' {
+			sb_add(sb, "\r")
+		} else if c == 't' {
+			sb_add(sb, "\t")
+		} else if c == 'v' {
+			sb_add(sb, "\v")
+		} else {
+			sb_add(sb, string(c))
+		}
+		i++
+		c = []rune(s)[i]
+	}
+	return i + 1
+}
+
+/*
+func read_string(sb *StringBuilder, s string) int {
+
+	i := 0
+	c := []rune(s)[0]
+	for i < len(s) && c != '"' {
+		if i == len(s) {
+			error("premature end of input")
+		}
 		if c != '\\' {
 			sb_add(sb, string(c))
 			i++
@@ -79,6 +123,7 @@ func read_string(sb *StringBuilder, s string) int {
 		}
 
 		i++
+		c = []rune(s)[i]
 		switch {
 		case c == 'a':
 			sb_add(sb, "\a")
@@ -103,6 +148,7 @@ func read_string(sb *StringBuilder, s string) int {
 	}
 	return i + 1
 }
+*/
 
 func add_token(v *Vector, ty int, input string) *Token {
 	t := new(Token)
@@ -212,10 +258,14 @@ func print_tokens(tokens *Vector) {
 		switch t.ty {
 		case TK_NUM:
 			ty = "TK_NUM   "
+		case TK_STR:
+			ty = "TK_STR   "
 		case TK_IDENT:
 			ty = "TK_IDENT "
 		case TK_INT:
 			ty = "TK_INT   "
+		case TK_CHAR:
+			ty = "TK_CHAR  "
 		case TK_IF:
 			ty = "TK_IF    "
 		case TK_ELSE:
@@ -228,6 +278,8 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_LOGOR "
 		case TK_LOGAND:
 			ty = "TK_LOGAND"
+		case TK_SIZEOF:
+			ty = "TK_SIZEOF"
 		case TK_EOF:
 			ty = "TK_EOF   "
 		case ';':
@@ -240,6 +292,10 @@ func print_tokens(tokens *Vector) {
 			ty = "*        "
 		case '/':
 			ty = "/        "
+		case '=':
+			ty = "=        "
+		case ',':
+			ty = ",        "
 		case '(':
 			ty = "(        "
 		case ')':
@@ -248,6 +304,12 @@ func print_tokens(tokens *Vector) {
 			ty = "{        "
 		case '}':
 			ty = "}        "
+		case '[':
+			ty = "[        "
+		case ']':
+			ty = "]        "
+		case '&':
+			ty = "&        "
 		case '<':
 			ty = "<        "
 		case '>':

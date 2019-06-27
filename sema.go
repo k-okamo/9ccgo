@@ -37,7 +37,6 @@ func new_global(ty *Type, name, data string, len int) *Var {
 	v.ty = ty
 	v.is_local = false
 	v.name = name
-	str_label++
 	v.data = data
 	v.len = len
 	return v

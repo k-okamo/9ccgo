@@ -6,19 +6,28 @@ import (
 
 var (
 	n        int
+	glabel   int
 	argreg8  = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
 	argreg32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
 	argreg64 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 )
 
 func escape(s string, length int) string {
-	buf := make([]rune, length*4)
+
+	if len(s) == 0 {
+		return string([]rune{'\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0'})
+	}
+
+	buf := make([]rune, (length+1)*4)
+	for i := range buf {
+		buf[i] = 0xff
+	}
 	i := 0
 	for _, c := range s {
-		if c == '\\' {
+		if c == '\\' || c == '"' {
 			buf[i] = '\\'
 			i++
-			buf[i] = '\\'
+			buf[i] = c
 			i++
 		} else if isgraph(c) || c == ' ' {
 			buf[i] = c
@@ -31,7 +40,28 @@ func escape(s string, length int) string {
 			}
 		}
 	}
-	return string(buf)
+	buf[i] = '\\'
+	i++
+	buf[i] = '0'
+	i++
+	buf[i] = '0'
+	i++
+	buf[i] = '0'
+	i++
+
+	n := 0
+	for i := range buf {
+		if buf[i] != 0xff {
+			n++
+		} else {
+			break
+		}
+	}
+	ret := make([]rune, n)
+	for i := 0; i < n; i++ {
+		ret[i] = buf[i]
+	}
+	return string(ret)
 }
 
 func gen_label() string {
@@ -48,8 +78,8 @@ func emit_cmp(ir *IR, insn string) {
 
 func gen(fn *Function) {
 
-	ret := format(".Lend%d", nlabel)
-	nlabel++
+	ret := format(".Lend%d", glabel)
+	glabel++
 
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)
@@ -83,7 +113,6 @@ func gen(fn *Function) {
 				fmt.Printf("\tpush r11\n")
 				fmt.Printf("\tmov rax, 0\n")
 				fmt.Printf("\tcall %s\n", ir.name)
-				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
 				fmt.Printf("\tpop r11\n")
 				fmt.Printf("\tpop r10\n")
 				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
@@ -156,6 +185,7 @@ func gen(fn *Function) {
 }
 
 func gen_x86(globals, fns *Vector) {
+
 	fmt.Printf(".intel_syntax noprefix\n")
 
 	fmt.Printf(".data\n")
