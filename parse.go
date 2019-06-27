@@ -453,6 +453,9 @@ func stmt() *Node {
 			vec_push(node.stmts, stmt())
 		}
 		return node
+	case ';':
+		pos++
+		return &null_stmt
 	default:
 		return expr_stmt()
 	}
