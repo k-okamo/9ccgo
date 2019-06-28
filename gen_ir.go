@@ -425,9 +425,7 @@ func gen_ir(nodes *Vector) *Vector {
 		}
 
 		//assert(node.op == ND_FUNC)
-
 		code = new_vec()
-		nreg = 1
 
 		for i := 0; i < node.args.len; i++ {
 			arg := node.args.data[i].(*Node)

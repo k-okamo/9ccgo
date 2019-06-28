@@ -13,9 +13,9 @@ package main
 // registers are exhausted and need to be spilled to memory.
 
 var (
-	regs    = []string{"rbp", "r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
-	regs8   = []string{"rp1", "r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
-	regs32  = []string{"ebp", "r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
+	regs    = []string{"r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
+	regs8   = []string{"r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
+	regs32  = []string{"r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
 	used    [8]bool
 	reg_map []int
 )
@@ -40,10 +40,6 @@ func alloc(ir_reg int) int {
 }
 
 func visit(irv *Vector) {
-	// r0 is a reserved register that is always mapped to rbp.
-	reg_map[0] = 0
-	used[0] = true
-
 	for i := 0; i < irv.len; i++ {
 		ir := irv.data[i].(*IR)
 
