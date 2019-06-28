@@ -10,8 +10,8 @@ package main
 
 var (
 	pos       = 0
-	int_ty    = Type{ty: INT, ptr_of: nil}
-	char_ty   = Type{ty: CHAR, ptr_of: nil}
+	int_ty    = Type{ty: INT, ptr_to: nil}
+	char_ty   = Type{ty: CHAR, ptr_to: nil}
 	null_stmt = Node{op: ND_NULL}
 )
 
@@ -88,7 +88,7 @@ type Type struct {
 	ty int
 
 	// Pointer
-	ptr_of *Type
+	ptr_to *Type
 
 	//Array
 	ary_of *Type
@@ -341,7 +341,7 @@ func ttype() *Type {
 	}
 	pos++
 	for consume('*') {
-		ty = ptr_of(ty)
+		ty = ptr_to(ty)
 	}
 	return ty
 }

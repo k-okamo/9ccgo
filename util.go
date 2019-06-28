@@ -48,10 +48,10 @@ func sb_get(sb *StringBuilder) string {
 	return sb.data
 }
 
-func ptr_of(base *Type) *Type {
+func ptr_to(base *Type) *Type {
 	ty := new(Type)
 	ty.ty = PTR
-	ty.ptr_of = base
+	ty.ptr_to = base
 	return ty
 }
 
@@ -121,7 +121,7 @@ func copy_type(src, dst *Type) {
 	dst.len = src.len
 
 	// Type
-	copy_type(src.ptr_of, dst.ptr_of)
+	copy_type(src.ptr_to, dst.ptr_to)
 	copy_type(src.ary_of, dst.ary_of)
 }
 

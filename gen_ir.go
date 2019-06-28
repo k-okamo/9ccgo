@@ -335,9 +335,9 @@ func gen_expr(node *Node) int {
 	case ND_DEREF:
 		{
 			r := gen_expr(node.expr)
-			if node.expr.ty.ptr_of.ty == CHAR {
+			if node.expr.ty.ptr_to.ty == CHAR {
 				add(IR_LOAD8, r, r)
-			} else if node.expr.ty.ptr_of.ty == INT {
+			} else if node.expr.ty.ptr_to.ty == INT {
 				add(IR_LOAD32, r, r)
 			} else {
 				add(IR_LOAD64, r, r)
@@ -387,7 +387,7 @@ func gen_expr(node *Node) int {
 			rhs := gen_expr(node.rhs)
 			r := nreg
 			nreg++
-			add(IR_IMM, r, size_of(node.lhs.ty.ptr_of))
+			add(IR_IMM, r, size_of(node.lhs.ty.ptr_to))
 			add(IR_MUL, rhs, r)
 			kill(r)
 
