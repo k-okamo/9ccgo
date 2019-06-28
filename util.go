@@ -38,7 +38,10 @@ func sb_add(sb *StringBuilder, s string) {
 }
 
 func sb_append(sb *StringBuilder, s string) {
-	len := len(s)
+	sb_lappend(sb, s, len(s))
+}
+
+func sb_lappend(sb *StringBuilder, s string, len int) {
 	sb_grow(sb, len)
 	sb.data += s
 	sb.len += len
