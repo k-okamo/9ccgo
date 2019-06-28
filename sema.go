@@ -78,7 +78,7 @@ func check_lval(node *Node) {
 	error("not an lvalue: %d (%s)", op, node.name)
 }
 
-func walk(env *Env, node *Node, decay bool) *Node {
+func walk(node *Node, env *Env, decay bool) *Node {
 	switch node.op {
 	case ND_NUM:
 		return node
@@ -126,30 +126,30 @@ func walk(env *Env, node *Node, decay bool) *Node {
 			map_put(env.vars, node.name, v)
 
 			if node.init != nil {
-				node.init = walk(env, node.init, true)
+				node.init = walk(node.init, env, true)
 			}
 			return node
 		}
 	case ND_IF:
-		node.cond = walk(env, node.cond, true)
-		node.then = walk(env, node.then, true)
+		node.cond = walk(node.cond, env, true)
+		node.then = walk(node.then, env, true)
 		if node.els != nil {
-			node.els = walk(env, node.els, true)
+			node.els = walk(node.els, env, true)
 		}
 		return node
 	case ND_FOR:
-		node.init = walk(env, node.init, true)
-		node.cond = walk(env, node.cond, true)
-		node.inc = walk(env, node.inc, true)
-		node.body = walk(env, node.body, true)
+		node.init = walk(node.init, env, true)
+		node.cond = walk(node.cond, env, true)
+		node.inc = walk(node.inc, env, true)
+		node.body = walk(node.body, env, true)
 		return node
 	case ND_DO_WHILE:
-		node.cond = walk(env, node.cond, true)
-		node.body = walk(env, node.body, true)
+		node.cond = walk(node.cond, env, true)
+		node.body = walk(node.body, env, true)
 		return node
 	case '+', '-':
-		node.lhs = walk(env, node.lhs, true)
-		node.rhs = walk(env, node.rhs, true)
+		node.lhs = walk(node.lhs, env, true)
+		node.rhs = walk(node.rhs, env, true)
 
 		if node.rhs.ty.ty == PTR {
 			swap(&node.lhs, &node.rhs)
@@ -161,34 +161,34 @@ func walk(env *Env, node *Node, decay bool) *Node {
 		node.ty = node.lhs.ty
 		return node
 	case '=':
-		node.lhs = walk(env, node.lhs, false)
+		node.lhs = walk(node.lhs, env, false)
 		check_lval(node.lhs)
-		node.rhs = walk(env, node.rhs, true)
+		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.lhs.ty
 		return node
 	case '*', '/', '<', ND_EQ, ND_NE, ND_LOGAND, ND_LOGOR:
-		node.lhs = walk(env, node.lhs, true)
-		node.rhs = walk(env, node.rhs, true)
+		node.lhs = walk(node.lhs, env, true)
+		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.lhs.ty
 		return node
 	case ND_ADDR:
-		node.expr = walk(env, node.expr, true)
+		node.expr = walk(node.expr, env, true)
 		check_lval(node.expr)
 		node.ty = ptr_of(node.expr.ty)
 		return node
 	case ND_DEREF:
-		node.expr = walk(env, node.expr, true)
+		node.expr = walk(node.expr, env, true)
 		if node.expr.ty.ty != PTR {
 			error("operand must be a pointer")
 		}
 		node.ty = node.expr.ty.ptr_of
 		return node
 	case ND_RETURN:
-		node.expr = walk(env, node.expr, true)
+		node.expr = walk(node.expr, env, true)
 		return node
 	case ND_SIZEOF:
 		{
-			expr := walk(env, node.expr, false)
+			expr := walk(node.expr, env, false)
 
 			ret := new(Node)
 			ret.op = ND_NUM
@@ -199,29 +199,29 @@ func walk(env *Env, node *Node, decay bool) *Node {
 		}
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(env, node.args.data[i].(*Node), true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), env, true)
 		}
 		node.ty = &int_ty
 		return node
 	case ND_FUNC:
 		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(env, node.args.data[i].(*Node), true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), env, true)
 		}
-		node.body = walk(env, node.body, true)
+		node.body = walk(node.body, env, true)
 		return node
 	case ND_COMP_STMT:
 		{
 			newenv := new_env(env)
 			for i := 0; i < node.stmts.len; i++ {
-				node.stmts.data[i] = walk(newenv, node.stmts.data[i].(*Node), true)
+				node.stmts.data[i] = walk(node.stmts.data[i].(*Node), newenv, true)
 			}
 			return node
 		}
 	case ND_EXPR_STMT:
-		node.expr = walk(env, node.expr, true)
+		node.expr = walk(node.expr, env, true)
 		return node
 	case ND_STMT_EXPR:
-		node.body = walk(env, node.body, true)
+		node.body = walk(node.body, env, true)
 		node.ty = &int_ty
 		return node
 	case ND_NULL:
@@ -250,7 +250,7 @@ func sema(nodes *Vector) *Vector {
 		//assert(node.op == ND_FUNC)
 
 		stacksize = 0
-		walk(topenv, node, true)
+		walk(node, topenv, true)
 		node.stacksize = stacksize
 	}
 
