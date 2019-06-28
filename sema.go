@@ -95,6 +95,15 @@ func check_lval(node *Node) {
 	error("not an lvalue: %d (%s)", op, node.name)
 }
 
+func new_int(val int) *Node {
+	node := new(Node)
+	node.op = ND_NUM
+	node.ty = new(Type)
+	node.ty.ty = INT
+	node.val = val
+	return node
+}
+
 func walk(node *Node, env *Env, decay bool) *Node {
 	switch node.op {
 	case ND_NUM:
@@ -207,13 +216,12 @@ func walk(node *Node, env *Env, decay bool) *Node {
 	case ND_SIZEOF:
 		{
 			expr := walk(node.expr, env, false)
-
-			ret := new(Node)
-			ret.op = ND_NUM
-			ret.ty = new(Type)
-			ret.ty.ty = INT
-			ret.val = size_of(expr.ty)
-			return ret
+			return new_int(size_of(expr.ty))
+		}
+	case ND_ALIGNOF:
+		{
+			expr := walk(node.expr, env, false)
+			return new_int(align_of(expr.ty))
 		}
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {

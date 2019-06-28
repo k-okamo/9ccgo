@@ -33,6 +33,7 @@ const (
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
+	ND_ALIGNOF                // "_Alignof"
 	ND_CALL                   // Function call
 	ND_FUNC                   // Function definition
 	ND_COMP_STMT              // Compound statement
@@ -215,6 +216,9 @@ func unary() *Node {
 	}
 	if consume(TK_SIZEOF) {
 		return new_expr(ND_SIZEOF, unary())
+	}
+	if consume(TK_ALIGNOF) {
+		return new_expr(ND_ALIGNOF, unary())
 	}
 	return postfix()
 }

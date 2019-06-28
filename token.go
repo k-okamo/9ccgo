@@ -14,6 +14,7 @@ var (
 	tokens   *Vector
 	keywords *Map
 	symbols  = []Keyword{
+		{name: "_Alignof", ty: TK_ALIGNOF},
 		{name: "char", ty: TK_CHAR},
 		{name: "do", ty: TK_DO},
 		{name: "else", ty: TK_ELSE},
@@ -43,24 +44,25 @@ var (
 )
 
 const (
-	TK_NUM    = iota + 256 // Number literal
-	TK_STR                 // String literal
-	TK_IDENT               // Identifier
-	TK_EXTERN              // "extern"
-	TK_INT                 // "int"
-	TK_CHAR                // "char"
-	TK_IF                  // "if"
-	TK_ELSE                // "else"
-	TK_FOR                 // "for"
-	TK_DO                  // "do"
-	TK_WHILE               // "while"
-	TK_EQ                  // ==
-	TK_NE                  // !=
-	TK_LOGOR               // ||
-	TK_LOGAND              // &&
-	TK_RETURN              // "return"
-	TK_SIZEOF              // "sizeof"
-	TK_EOF                 // End marker
+	TK_NUM     = iota + 256 // Number literal
+	TK_STR                  // String literal
+	TK_IDENT                // Identifier
+	TK_EXTERN               // "extern"
+	TK_INT                  // "int"
+	TK_CHAR                 // "char"
+	TK_IF                   // "if"
+	TK_ELSE                 // "else"
+	TK_FOR                  // "for"
+	TK_DO                   // "do"
+	TK_WHILE                // "while"
+	TK_EQ                   // ==
+	TK_NE                   // !=
+	TK_LOGOR                // ||
+	TK_LOGAND               // &&
+	TK_RETURN               // "return"
+	TK_SIZEOF               // "sizeof"
+	TK_ALIGNOF              // "_Alignof"
+	TK_EOF                  // End marker
 )
 
 // Token type
