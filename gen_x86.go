@@ -99,7 +99,7 @@ func gen(fn *Function) {
 	fmt.Printf("%s:\n", fn.name)
 	fmt.Printf("\tpush rbp\n")
 	fmt.Printf("\tmov rbp, rsp\n")
-	fmt.Printf("\tsub rsp, %d\n", fn.stacksize)
+	fmt.Printf("\tsub rsp, %d\n", roundup(fn.stacksize, 16))
 	fmt.Printf("\tpush r12\n")
 	fmt.Printf("\tpush r13\n")
 	fmt.Printf("\tpush r14\n")

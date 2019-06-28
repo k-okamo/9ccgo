@@ -77,6 +77,24 @@ func size_of(ty *Type) int {
 	return size_of(ty.ary_of) * ty.len
 }
 
+func align_of(ty *Type) int {
+	if ty.ty == CHAR {
+		return 1
+	}
+	if ty.ty == INT {
+		return 4
+	}
+	if ty.ty == PTR {
+		return 8
+	}
+	// assert(ty.ty == ARY)
+	return align_of(ty.ary_of)
+}
+
+func roundup(x, align int) int {
+	return (x + align - 1) & ^(align - 1)
+}
+
 func copy_node(src, dst *Node) {
 	if src == nil {
 		return

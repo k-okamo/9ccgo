@@ -134,6 +134,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		}
 	case ND_VARDEF:
 		{
+			stacksize = roundup(stacksize, align_of(node.ty))
 			stacksize += size_of(node.ty)
 			node.offset = stacksize
 			v := new(Var)
