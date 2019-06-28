@@ -202,6 +202,34 @@ loop:
 			continue
 		}
 
+		// Line comment
+		if strncmp(s, "//", 2) == 0 {
+			i := 0
+			for i != len(s) && c != '\n' {
+				i++
+				c = []rune(s)[i]
+			}
+			s = s[i:]
+			continue
+		}
+
+		// Block comment
+		if strncmp(s, "/*", 2) == 0 {
+			s = s[2:]
+		LOOP:
+			for {
+				if len(s) == 0 {
+					error("premature end of input")
+				}
+				if strncmp(s, "*/", 2) == 0 {
+					s = s[2:]
+					break LOOP
+				}
+				s = s[1:]
+			}
+			continue
+		}
+
 		// Character literal
 		if c == '\'' {
 			t := add_token(v, TK_NUM, s)

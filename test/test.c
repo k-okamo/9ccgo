@@ -23,6 +23,14 @@ int var1;
 int var2[5];
 extern int global_arr[1];
 
+// Single-line comment test
+
+
+/***************************
+ * Multi-line comment test *
+ * *************************/
+
+
 int main() {
 
   EXPECT(0, 0);
