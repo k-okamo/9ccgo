@@ -31,51 +31,22 @@ func escape(s string, length int) string {
 		'"':  '"',
 	}
 
-	buf := make([]rune, (length+1)*4)
-	for i := range buf {
-		buf[i] = 0xff
-	}
-	i := 0
+	sb := new_sb()
 	for _, c := range s {
 		esc, ok := escaped[c]
 		if ok {
-			buf[i] = '\\'
-			i++
-			buf[i] = esc
-			i++
+			sb_add(sb, "\\")
+			sb_add(sb, string(esc))
 		} else if isgraph(c) || c == ' ' {
-			buf[i] = c
-			i++
+			sb_add(sb, string(c))
 		} else {
-			format := fmt.Sprintf("\\%03o", c)
-			for _, cc := range format {
-				buf[i] = cc
-				i++
-			}
+			sb_append(sb, format("\\%03o", c))
 		}
 	}
-	buf[i] = '\\'
-	i++
-	buf[i] = '0'
-	i++
-	buf[i] = '0'
-	i++
-	buf[i] = '0'
-	i++
 
-	n := 0
-	for i := range buf {
-		if buf[i] != 0xff {
-			n++
-		} else {
-			break
-		}
-	}
-	ret := make([]rune, n)
-	for i := 0; i < n; i++ {
-		ret[i] = buf[i]
-	}
-	return string(ret)
+	buf := string([]rune{'\\', '0', '0', '0'})
+	sb_append(sb, buf)
+	return sb_get(sb)
 }
 
 func gen_label() string {
