@@ -111,8 +111,8 @@ func gen(fn *Function) {
 		switch ir.op {
 		case IR_IMM:
 			fmt.Printf("\tmov %s, %d\n", regs[ir.lhs], ir.rhs)
-		case IR_SUB_IMM:
-			fmt.Printf("\tsub %s, %d\n", regs[ir.lhs], ir.rhs)
+		case IR_BPREL:
+			fmt.Printf("\tlea %s, [rbp-%d]\n", regs[ir.lhs], ir.rhs)
 		case IR_MOV:
 			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_RETURN:

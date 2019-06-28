@@ -30,7 +30,7 @@ var irinfo = map[int]IRInfo{
 	IR_MUL:         {name: "MUL", ty: IR_TY_REG_REG},
 	IR_DIV:         {name: "DIV", ty: IR_TY_REG_REG},
 	IR_IMM:         {name: "MOV", ty: IR_TY_REG_IMM},
-	IR_SUB_IMM:     {name: "SUB", ty: IR_TY_REG_IMM},
+	IR_BPREL:       {name: "BPREL", ty: IR_TY_REG_IMM},
 	IR_IF:          {name: "IF", ty: IR_TY_REG_LABEL},
 	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
 	IR_LABEL:       {name: "", ty: IR_TY_LABEL},
@@ -62,7 +62,7 @@ const (
 	IR_MUL
 	IR_DIV
 	IR_IMM
-	IR_SUB_IMM
+	IR_BPREL
 	IR_MOV
 	IR_RETURN
 	IR_CALL
@@ -217,8 +217,7 @@ func gen_lval(node *Node) int {
 	if node.op == ND_LVAR {
 		r := nreg
 		nreg++
-		add(IR_MOV, r, 0)
-		add(IR_SUB_IMM, r, node.offset)
+		add(IR_BPREL, r, node.offset)
 		return r
 	}
 	// assert(node.op == ND_GVAR)
@@ -421,8 +420,7 @@ func gen_stmt(node *Node) {
 		rhs := gen_expr(node.init)
 		lhs := nreg
 		nreg++
-		add(IR_MOV, lhs, 0)
-		add(IR_SUB_IMM, lhs, node.offset)
+		add(IR_BPREL, lhs, node.offset)
 		if node.ty.ty == CHAR {
 			add(IR_STORE8, lhs, rhs)
 		} else if node.ty.ty == INT {
@@ -569,8 +567,8 @@ func print_irs(fns *Vector) {
 			switch ir.op {
 			case IR_IMM:
 				op = "IR_IMM      "
-			case IR_SUB_IMM:
-				op = "IR_SUB_IMM  "
+			case IR_BPREL:
+				op = "IR_BPREL    "
 			case IR_MOV:
 				op = "IR_MOV      "
 			case IR_RETURN:
