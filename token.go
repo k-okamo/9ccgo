@@ -82,7 +82,7 @@ type Keyword struct {
 	ty   int
 }
 
-func read_char(result *int, s string) int {
+func read_char(result *int, s string) string {
 
 	i := 0
 	c := []rune(s)[0]
@@ -111,10 +111,10 @@ func read_char(result *int, s string) int {
 	}
 	i++
 
-	return i
+	return s[i:]
 }
 
-func read_string(sb *StringBuilder, s string) int {
+func read_string(sb *StringBuilder, s string) string {
 	i := 0
 	c := []rune(s)[0]
 	for c != '"' {
@@ -141,7 +141,7 @@ func read_string(sb *StringBuilder, s string) int {
 		i++
 		c = []rune(s)[i]
 	}
-	return i + 1
+	return s[(i + 1):]
 }
 
 /*
@@ -241,8 +241,7 @@ loop:
 		if c == '\'' {
 			t := add_token(v, TK_NUM, s)
 			s = s[1:]
-			r := read_char(&t.val, s)
-			s = s[r:]
+			s = read_char(&t.val, s)
 			continue
 		}
 
@@ -252,8 +251,7 @@ loop:
 			s = s[1:]
 
 			sb := new_sb()
-			i := read_string(sb, s)
-			s = s[i:]
+			s = read_string(sb, s)
 			t.str = sb_get(sb)
 			t.len = sb.len
 			continue
