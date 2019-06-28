@@ -1,5 +1,7 @@
 package main
 
+// This pass generats x86-64 assembly from IR.
+
 import (
 	"fmt"
 )

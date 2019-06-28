@@ -1,5 +1,10 @@
 package main
 
+// Atomic unit in the grammer is called "token".
+// For example, `123`, `"abc"` and `while` are tokens.
+// The tokenizer splits an inpuit string into tokens.
+// Spaces and comments are removed by the tokenizer.
+
 import (
 	"fmt"
 	"unicode"

@@ -1,5 +1,16 @@
 package main
 
+// 9ccgo's code generation is two-pass. In the first pass, abstract
+// syntax trees are compiled to IT (intermediate representation).
+//
+// IR resembles the real x86-64 instruction set, but it has infinite
+// number of registers. We don't try too hard to reuse registers in
+// this pass. Instead, we "kill" registers to mark them as dead when
+// we are done with them and use new registers.
+//
+// Such infinite number of registers are mapped to a finite registers
+// in a later pass.
+
 import (
 	"fmt"
 	"os"
@@ -181,6 +192,23 @@ func label(x int) {
 	add(IR_LABEL, x, -1)
 }
 
+// In C, all expressions that can be written on the left-hand side of
+// the '=' operator must habe an address in memory. IN other words, if
+// you can apply the '&' operator to take an address of some
+// expression E, you can assign E to a new value.
+//
+// Other expressions, such as `1+2`, cannot be written on the lhs of
+// '=', since they are just temporary values that don't have an address.
+//
+// The stuff that can be written on the lhs of '=' os called lvalue.
+// Other values are called rvalue. An lvalue is essentially an address.
+//
+// When lvalues appear on the rvalue context, they are converted to
+// rvalues by loading their values from their addresses. You can think
+// '&' as an operator that suppresses such auutomatic lvalue-to-rvalue
+// conversion.
+//
+// This function evaluates a given node as an lvalue.
 func gen_lval(node *Node) int {
 	if node.op == ND_DEREF {
 		return gen_expr(node.expr)
