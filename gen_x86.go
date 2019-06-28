@@ -18,16 +18,28 @@ func escape(s string, length int) string {
 		return string([]rune{'\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0'})
 	}
 
+	escaped := map[rune]rune{
+		'\b': 'b',
+		'\f': 'f',
+		'\n': 'n',
+		'\r': 'r',
+		'\t': 't',
+		'\\': '\\',
+		'\'': '\'',
+		'"':  '"',
+	}
+
 	buf := make([]rune, (length+1)*4)
 	for i := range buf {
 		buf[i] = 0xff
 	}
 	i := 0
 	for _, c := range s {
-		if c == '\\' || c == '"' {
+		esc, ok := escaped[c]
+		if ok {
 			buf[i] = '\\'
 			i++
-			buf[i] = c
+			buf[i] = esc
 			i++
 		} else if isgraph(c) || c == ' ' {
 			buf[i] = c
