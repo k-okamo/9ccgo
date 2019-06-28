@@ -103,6 +103,30 @@ func label(x int) {
 	add(IR_LABEL, x, -1)
 }
 
+func choose_insn(node *Node, op8, op32, op64 int) int {
+	sz := size_of(node.ty)
+	if sz == 1 {
+		return op8
+	}
+	if sz == 4 {
+		return op32
+	}
+	// assert(sz == 8)
+	return op64
+}
+
+func load_insn(node *Node) int {
+	return choose_insn(node, IR_LOAD8, IR_LOAD32, IR_LOAD64)
+}
+
+func store_insn(node *Node) int {
+	return choose_insn(node, IR_STORE8, IR_STORE32, IR_STORE64)
+}
+
+func store_arg_insn(node *Node) int {
+	return choose_insn(node, IR_STORE8_ARG, IR_STORE32_ARG, IR_STORE64_ARG)
+}
+
 // In C, all expressions that can be written on the left-hand side of
 // the '=' operator must habe an address in memory. IN other words, if
 // you can apply the '&' operator to take an address of some
@@ -208,13 +232,7 @@ func gen_expr(node *Node) int {
 	case ND_GVAR, ND_LVAR:
 		{
 			r := gen_lval(node)
-			if node.ty.ty == CHAR {
-				add(IR_LOAD8, r, r)
-			} else if node.ty.ty == INT {
-				add(IR_LOAD32, r, r)
-			} else {
-				add(IR_LOAD64, r, r)
-			}
+			add(load_insn(node), r, r)
 			return r
 		}
 
@@ -245,13 +263,7 @@ func gen_expr(node *Node) int {
 	case ND_DEREF:
 		{
 			r := gen_expr(node.expr)
-			if node.expr.ty.ptr_to.ty == CHAR {
-				add(IR_LOAD8, r, r)
-			} else if node.expr.ty.ptr_to.ty == INT {
-				add(IR_LOAD32, r, r)
-			} else {
-				add(IR_LOAD64, r, r)
-			}
+			add(load_insn(node), r, r)
 			return r
 		}
 	case ND_STMT_EXPR:
@@ -274,13 +286,7 @@ func gen_expr(node *Node) int {
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
-			if node.lhs.ty.ty == CHAR {
-				add(IR_STORE8, lhs, rhs)
-			} else if node.lhs.ty.ty == INT {
-				add(IR_STORE32, lhs, rhs)
-			} else {
-				add(IR_STORE64, lhs, rhs)
-			}
+			add(store_insn(node), lhs, rhs)
 			kill(rhs)
 			return lhs
 		}
@@ -332,13 +338,7 @@ func gen_stmt(node *Node) {
 		lhs := nreg
 		nreg++
 		add(IR_BPREL, lhs, node.offset)
-		if node.ty.ty == CHAR {
-			add(IR_STORE8, lhs, rhs)
-		} else if node.ty.ty == INT {
-			add(IR_STORE32, lhs, rhs)
-		} else {
-			add(IR_STORE64, lhs, rhs)
-		}
+		add(store_insn(node), lhs, rhs)
 		kill(lhs)
 		kill(rhs)
 		return
@@ -443,13 +443,7 @@ func gen_ir(nodes *Vector) *Vector {
 
 		for i := 0; i < node.args.len; i++ {
 			arg := node.args.data[i].(*Node)
-			if arg.ty.ty == CHAR {
-				add(IR_STORE8_ARG, arg.offset, i)
-			} else if arg.ty.ty == INT {
-				add(IR_STORE32_ARG, arg.offset, i)
-			} else {
-				add(IR_STORE64_ARG, arg.offset, i)
-			}
+			add(store_arg_insn(arg), arg.offset, i)
 		}
 
 		gen_stmt(node.body)
