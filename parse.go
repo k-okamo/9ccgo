@@ -68,12 +68,6 @@ type Node struct {
 	data      string
 	len       int
 
-	// Struct
-	members *Vector
-
-	// Struct access
-	member string
-
 	// "if" ( cond ) then "else" els
 	// "for" ( init; cond; inc ) body
 	cond *Node
@@ -260,7 +254,15 @@ func postfix() *Node {
 		node := new(Node)
 		node.op = ND_DOT
 		node.expr = lhs
-		node.member = ident()
+		node.name = ident()
+		return node
+	}
+
+	if consume(TK_ARROW) {
+		node := new(Node)
+		node.op = ND_DOT
+		node.expr = new_expr(ND_DEREF, lhs)
+		node.name = ident()
 		return node
 	}
 

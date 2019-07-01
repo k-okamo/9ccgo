@@ -203,14 +203,14 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		ty := node.expr.ty
 		for i := 0; i < ty.members.len; i++ {
 			m := ty.members.data[i].(*Node)
-			if m.name != node.member {
+			if m.name != node.name {
 				continue
 			}
 			node.ty = m.ty
 			node.offset = m.ty.offset
 			return node
 		}
-		error("member missing: %s", node.member)
+		error("member missing: %s", node.name)
 	case '*', '/', '<', ND_EQ, ND_NE, ND_LOGAND, ND_LOGOR:
 		node.lhs = walk(node.lhs, env, true)
 		node.rhs = walk(node.rhs, env, true)

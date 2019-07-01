@@ -26,10 +26,11 @@ var (
 		{name: "sizeof", ty: TK_SIZEOF},
 		{name: "struct", ty: TK_STRUCT},
 		{name: "while", ty: TK_WHILE},
-		{name: "&&", ty: TK_LOGAND},
-		{name: "||", ty: TK_LOGOR},
-		{name: "==", ty: TK_EQ},
 		{name: "!=", ty: TK_NE},
+		{name: "&&", ty: TK_LOGAND},
+		{name: "->", ty: TK_ARROW},
+		{name: "==", ty: TK_EQ},
+		{name: "||", ty: TK_LOGOR},
 	}
 	escaped = map[rune]int{
 		'a': '\a',
@@ -48,6 +49,7 @@ const (
 	TK_NUM     = iota + 256 // Number literal
 	TK_STR                  // String literal
 	TK_IDENT                // Identifier
+	TK_ARROW                // ->
 	TK_EXTERN               // "extern"
 	TK_INT                  // "int"
 	TK_CHAR                 // "char"

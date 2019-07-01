@@ -139,7 +139,6 @@ func copy_node(src, dst *Node) {
 	dst.stacksize = src.stacksize
 	dst.offset = src.offset
 	dst.is_extern = src.is_extern
-	dst.member = src.member
 
 	// Node
 	copy_node(src.lhs, dst.lhs)
@@ -158,7 +157,6 @@ func copy_node(src, dst *Node) {
 	copy_vector(src.stmts, dst.stmts)
 	copy_vector(src.globals, dst.globals)
 	copy_vector(src.args, dst.args)
-	copy_vector(src.members, dst.members)
 }
 
 func copy_type(src, dst *Type) {
