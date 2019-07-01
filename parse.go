@@ -9,9 +9,9 @@ package main
 // Semantic errors are detected in a later pass.
 
 var (
-	pos       = 0
-	int_ty    = Type{ty: INT, ptr_to: nil}
-	char_ty   = Type{ty: CHAR, ptr_to: nil}
+	pos    = 0
+	int_ty = Type{ty: INT, size: 4, align: 4}
+	//char_ty   = Type{ty: CHAR, ptr_to: nil}
 	null_stmt = Node{op: ND_NULL}
 )
 
@@ -19,6 +19,7 @@ const (
 	ND_NUM       = iota + 256 // Number literal
 	ND_STR                    // String literal
 	ND_IDENT                  // Identigier
+	ND_STRUCT                 // Struct
 	ND_VARDEF                 // Variable definition
 	ND_LVAR                   // Local variable reference
 	ND_GVAR                   // Global variable reference
@@ -47,6 +48,7 @@ const (
 	CHAR
 	PTR
 	ARY
+	STRUCT
 )
 
 type Node struct {
@@ -64,6 +66,9 @@ type Node struct {
 	is_extern bool
 	data      string
 	len       int
+
+	// Struct
+	members *Vector
 
 	// "if" ( cond ) then "else" els
 	// "for" ( init; cond; inc ) body
@@ -86,14 +91,20 @@ type Node struct {
 }
 
 type Type struct {
-	ty int
+	ty    int
+	size  int
+	align int
 
 	// Pointer
 	ptr_to *Type
 
-	//Array
+	// Array
 	ary_of *Type
 	len    int
+
+	// Struct
+	members *Vector
+	offset  int
 }
 
 func expect(ty int) {
@@ -104,6 +115,17 @@ func expect(ty int) {
 	pos++
 }
 
+func new_prim_ty(ty, size int) *Type {
+	ret := new(Type)
+	ret.ty = ty
+	ret.size = size
+	ret.align = size
+	return ret
+}
+
+func char_tyf() *Type { return new_prim_ty(CHAR, 1) }
+func int_tyf() *Type  { return new_prim_ty(INT, 4) }
+
 func consume(ty int) bool {
 	t := tokens.data[pos].(*Token)
 	if t.ty != ty {
@@ -113,14 +135,34 @@ func consume(ty int) bool {
 	return true
 }
 
-func get_type() *Type {
+func is_typename() bool {
 	t := tokens.data[pos].(*Token)
+	return t.ty == TK_INT || t.ty == TK_CHAR || t.ty == TK_STRUCT
+}
+
+func read_type() *Type {
+	t := tokens.data[pos].(*Token)
+
 	if t.ty == TK_INT {
-		return &int_ty
+		pos++
+		return int_tyf()
 	}
+
 	if t.ty == TK_CHAR {
-		return &char_ty
+		pos++
+		return char_tyf()
 	}
+
+	if t.ty == TK_STRUCT {
+		pos++
+		expect('{')
+		members := new_vec()
+		for !consume('}') {
+			vec_push(members, decl())
+		}
+		return struct_of(members)
+	}
+
 	return nil
 }
 
@@ -158,14 +200,14 @@ func primary() *Node {
 
 	node := new(Node)
 	if t.ty == TK_NUM {
-		node.ty = &int_ty
+		node.ty = int_tyf()
 		node.op = ND_NUM
 		node.val = t.val
 		return node
 	}
 
 	if t.ty == TK_STR {
-		node.ty = ary_of(&char_ty, len(t.str))
+		node.ty = ary_of(char_tyf(), len(t.str))
 		node.op = ND_STR
 		node.data = t.str
 		node.len = t.len
@@ -339,11 +381,10 @@ func assign() *Node {
 
 func ttype() *Type {
 	t := tokens.data[pos].(*Token)
-	ty := get_type()
+	ty := read_type()
 	if ty == nil {
 		error("typename expected, but got %s", t.input)
 	}
-	pos++
 	for consume('*') {
 		ty = ptr_to(ty)
 	}
@@ -401,7 +442,7 @@ func stmt() *Node {
 	t := tokens.data[pos].(*Token)
 
 	switch t.ty {
-	case TK_INT, TK_CHAR:
+	case TK_INT, TK_CHAR, TK_STRUCT:
 		return decl()
 	case TK_IF:
 		pos++
@@ -420,7 +461,7 @@ func stmt() *Node {
 		pos++
 		node.op = ND_FOR
 		expect('(')
-		if get_type() != nil {
+		if is_typename() {
 			node.init = decl()
 		} else {
 			node.init = expr_stmt()
@@ -533,7 +574,7 @@ func toplevel() *Node {
 		node.is_extern = true
 	} else {
 		node.data = ""
-		node.len = size_of(node.ty)
+		node.len = node.ty.size
 	}
 	expect(';')
 	return node

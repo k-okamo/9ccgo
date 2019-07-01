@@ -104,14 +104,13 @@ func label(x int) {
 }
 
 func choose_insn(node *Node, op8, op32, op64 int) int {
-	sz := size_of(node.ty)
-	if sz == 1 {
+	if node.ty.size == 1 {
 		return op8
 	}
-	if sz == 4 {
+	if node.ty.size == 4 {
 		return op32
 	}
-	// assert(sz == 8)
+	// assert(node.ty.size == 8)
 	return op64
 }
 
@@ -291,7 +290,7 @@ func gen_expr(node *Node) int {
 			rhs := gen_expr(node.rhs)
 			r := nreg
 			nreg++
-			add(IR_IMM, r, size_of(node.lhs.ty.ptr_to))
+			add(IR_IMM, r, node.lhs.ty.ptr_to.size)
 			add(IR_MUL, rhs, r)
 			kill(r)
 

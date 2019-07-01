@@ -24,6 +24,7 @@ var (
 		{name: "int", ty: TK_INT},
 		{name: "return", ty: TK_RETURN},
 		{name: "sizeof", ty: TK_SIZEOF},
+		{name: "struct", ty: TK_STRUCT},
 		{name: "while", ty: TK_WHILE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "||", ty: TK_LOGOR},
@@ -50,6 +51,7 @@ const (
 	TK_EXTERN               // "extern"
 	TK_INT                  // "int"
 	TK_CHAR                 // "char"
+	TK_STRUCT               // "struct"
 	TK_IF                   // "if"
 	TK_ELSE                 // "else"
 	TK_FOR                  // "for"

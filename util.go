@@ -54,6 +54,8 @@ func sb_get(sb *StringBuilder) string {
 func ptr_to(base *Type) *Type {
 	ty := new(Type)
 	ty.ty = PTR
+	ty.size = 8
+	ty.align = 8
 	ty.ptr_to = base
 	return ty
 }
@@ -61,8 +63,33 @@ func ptr_to(base *Type) *Type {
 func ary_of(base *Type, length int) *Type {
 	ty := new(Type)
 	ty.ty = ARY
+	ty.size = base.size * length
+	ty.align = base.align
 	ty.ary_of = base
 	ty.len = length
+	return ty
+}
+
+func struct_of(members *Vector) *Type {
+	ty := new(Type)
+	ty.ty = STRUCT
+	ty.members = new_vec()
+
+	off := 0
+	for i := 0; i < members.len; i++ {
+		node := members.data[i].(*Node)
+		// assert(node.op == ND_VARDEF)
+
+		t := node.ty
+		off = roundup(off, t.align)
+		t.offset = off
+		off += t.size
+
+		if ty.align < node.ty.align {
+			ty.align = node.ty.align
+		}
+	}
+	ty.size = roundup(off, ty.align)
 	return ty
 }
 
@@ -130,6 +157,7 @@ func copy_node(src, dst *Node) {
 	copy_vector(src.stmts, dst.stmts)
 	copy_vector(src.globals, dst.globals)
 	copy_vector(src.args, dst.args)
+	copy_vector(src.members, dst.members)
 }
 
 func copy_type(src, dst *Type) {
@@ -140,10 +168,16 @@ func copy_type(src, dst *Type) {
 	// value
 	dst.ty = src.ty
 	dst.len = src.len
+	dst.size = src.size
+	dst.align = src.align
+	dst.offset = src.offset
 
 	// Type
 	copy_type(src.ptr_to, dst.ptr_to)
 	copy_type(src.ary_of, dst.ary_of)
+
+	// Vector
+	copy_vector(src.members, dst.members)
 }
 
 func copy_vector(src, dst *Vector) {
