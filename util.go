@@ -73,7 +73,7 @@ func ary_of(base *Type, length int) *Type {
 func struct_of(members *Vector) *Type {
 	ty := new(Type)
 	ty.ty = STRUCT
-	ty.members = new_vec()
+	ty.members = members
 
 	off := 0
 	for i := 0; i < members.len; i++ {
@@ -139,6 +139,7 @@ func copy_node(src, dst *Node) {
 	dst.stacksize = src.stacksize
 	dst.offset = src.offset
 	dst.is_extern = src.is_extern
+	dst.member = src.member
 
 	// Node
 	copy_node(src.lhs, dst.lhs)

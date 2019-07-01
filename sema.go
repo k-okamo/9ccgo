@@ -89,7 +89,7 @@ func maybe_decay(base *Node, decay bool) *Node {
 
 func check_lval(node *Node) {
 	op := node.op
-	if op == ND_LVAR || op == ND_GVAR || op == ND_DEREF {
+	if op == ND_LVAR || op == ND_GVAR || op == ND_DEREF || op == ND_DOT {
 		return
 	}
 	error("not an lvalue: %d (%s)", op, node.name)
@@ -193,6 +193,24 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.lhs.ty
 		return node
+
+	case ND_DOT:
+		node.expr = walk(node.expr, env, true)
+		if node.expr.ty.ty != STRUCT {
+			error("struct expected before '.'")
+		}
+
+		ty := node.expr.ty
+		for i := 0; i < ty.members.len; i++ {
+			m := ty.members.data[i].(*Node)
+			if m.name != node.member {
+				continue
+			}
+			node.ty = m.ty
+			node.offset = m.ty.offset
+			return node
+		}
+		error("member missing: %s", node.member)
 	case '*', '/', '<', ND_EQ, ND_NE, ND_LOGAND, ND_LOGOR:
 		node.lhs = walk(node.lhs, env, true)
 		node.rhs = walk(node.rhs, env, true)

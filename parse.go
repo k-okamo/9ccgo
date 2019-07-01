@@ -28,6 +28,7 @@ const (
 	ND_DO_WHILE               // do ~ while
 	ND_ADDR                   // address-of operator ("&")
 	ND_DEREF                  // pointer dereference ("*")
+	ND_DOT                    // Struct member access
 	ND_EQ                     // ==
 	ND_NE                     // !=
 	ND_LOGOR                  // ||
@@ -70,6 +71,9 @@ type Node struct {
 	// Struct
 	members *Vector
 
+	// Struct access
+	member string
+
 	// "if" ( cond ) then "else" els
 	// "for" ( init; cond; inc ) body
 	cond *Node
@@ -83,7 +87,7 @@ type Node struct {
 	stacksize int
 	globals   *Vector
 
-	// Local variable
+	// Offset from BP or beginning of a struct
 	offset int
 
 	// Function call
@@ -181,6 +185,15 @@ func new_expr(op int, expr *Node) *Node {
 	return node
 }
 
+func ident() string {
+	t := tokens.data[pos].(*Token)
+	pos++
+	if t.ty != TK_IDENT {
+		error("identifier expected, but got %s", t.input)
+	}
+	return t.name
+}
+
 func primary() *Node {
 	t := tokens.data[pos].(*Token)
 	pos++
@@ -242,6 +255,15 @@ func primary() *Node {
 
 func postfix() *Node {
 	lhs := primary()
+
+	if consume('.') {
+		node := new(Node)
+		node.op = ND_DOT
+		node.expr = lhs
+		node.member = ident()
+		return node
+	}
+
 	for consume('[') {
 		lhs = new_expr(ND_DEREF, new_binop('+', lhs, assign()))
 		expect(']')
@@ -399,12 +421,7 @@ func decl() *Node {
 	node.ty = ttype()
 
 	// Read an identifier.
-	t := tokens.data[pos].(*Token)
-	if t.ty != TK_IDENT {
-		error("variable name expected, but got %s", t.input)
-	}
-	node.name = t.name
-	pos++
+	node.name = ident()
 
 	// Read the second half of type name (e.g. `[3][5]`).
 	node.ty = read_array(node.ty)
@@ -421,13 +438,7 @@ func param() *Node {
 	node := new(Node)
 	node.op = ND_VARDEF
 	node.ty = ttype()
-
-	t := tokens.data[pos].(*Token)
-	if t.ty != TK_IDENT {
-		error("parameter name expected, but got %s", t.input)
-	}
-	node.name = t.name
-	pos++
+	node.name = ident()
 	return node
 }
 
@@ -535,13 +546,7 @@ func toplevel() *Node {
 		error("typename expected, but got %s", t.input)
 	}
 
-	t := tokens.data[pos].(*Token)
-	if t.ty != TK_IDENT {
-		error("function or variable name expected, but got %s", t.input)
-	}
-
-	name := t.name
-	pos++
+	name := ident()
 
 	// Function
 	if consume('(') {

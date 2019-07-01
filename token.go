@@ -274,7 +274,7 @@ loop:
 		}
 
 		// Single-letter token
-		if strchr("+-*/;=(),{}<>[]&", c) != "" {
+		if strchr("+-*/;=(),{}<>[]&.", c) != "" {
 			add_token(v, int(c), s)
 			s = s[1:]
 			continue
@@ -355,6 +355,8 @@ func print_tokens(tokens *Vector) {
 			ty = "TK_LOGAND"
 		case TK_SIZEOF:
 			ty = "TK_SIZEOF"
+		case TK_STRUCT:
+			ty = "TK_STRUCT"
 		case TK_EOF:
 			ty = "TK_EOF   "
 		case ';':
@@ -389,10 +391,12 @@ func print_tokens(tokens *Vector) {
 			ty = "<        "
 		case '>':
 			ty = ">        "
+		case '.':
+			ty = ".        "
 		default:
 			ty = "         "
 		}
-		fmt.Printf("[%02d] ty: %s, val: %d, input: %s\n", i, ty, t.val, t.input)
+		fmt.Printf("[%02d] ty: %s, val: %d, input: %s", i, ty, t.val, t.input)
 	}
 	fmt.Println("")
 }

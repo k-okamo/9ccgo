@@ -17,8 +17,8 @@ import (
 
 var (
 	code         *Vector
-	nreg         int
-	nlabel       int
+	nreg         = 1
+	nlabel       = 1
 	return_label int
 	return_reg   int
 )
@@ -148,6 +148,16 @@ func gen_lval(node *Node) int {
 		return gen_expr(node.expr)
 	}
 
+	if node.op == ND_DOT {
+		r1 := gen_lval(node.expr)
+		r2 := nreg
+		nreg++
+		add(IR_IMM, r2, node.offset)
+		add(IR_ADD, r1, r2)
+		kill(r2)
+		return r1
+	}
+
 	if node.op == ND_LVAR {
 		r := nreg
 		nreg++
@@ -216,7 +226,7 @@ func gen_expr(node *Node) int {
 			label(y)
 			return r1
 		}
-	case ND_GVAR, ND_LVAR:
+	case ND_GVAR, ND_LVAR, ND_DOT:
 		{
 			r := gen_lval(node)
 			add(load_insn(node), r, r)

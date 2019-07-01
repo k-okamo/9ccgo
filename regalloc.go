@@ -17,7 +17,7 @@ var (
 	regs8   = []string{"r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
 	regs32  = []string{"r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
 	used    [8]bool
-	reg_map []int
+	reg_map [8192]int
 )
 
 func alloc(ir_reg int) int {
@@ -65,13 +65,13 @@ func visit(irv *Vector) {
 }
 
 func alloc_regs(fns *Vector) {
+
+	for i := 0; i < len(reg_map); i++ {
+		reg_map[i] = -1
+	}
+
 	for i := 0; i < fns.len; i++ {
 		fn := fns.data[i].(*Function)
-
-		reg_map = make([]int, fn.ir.len)
-		for j := 0; j < fn.ir.len; j++ {
-			reg_map[j] = -1
-		}
 		visit(fn.ir)
 	}
 }

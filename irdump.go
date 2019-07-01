@@ -15,7 +15,7 @@ var irinfo = map[int]IRInfo{
 	IR_SUB:         {name: "SUB", ty: IR_TY_REG_REG},
 	IR_MUL:         {name: "MUL", ty: IR_TY_REG_REG},
 	IR_DIV:         {name: "DIV", ty: IR_TY_REG_REG},
-	IR_IMM:         {name: "MOV", ty: IR_TY_REG_IMM},
+	IR_IMM:         {name: "IMM", ty: IR_TY_REG_IMM},
 	IR_BPREL:       {name: "BPREL", ty: IR_TY_REG_IMM},
 	IR_IF:          {name: "IF", ty: IR_TY_REG_LABEL},
 	IR_MOV:         {name: "MOV", ty: IR_TY_REG_REG},
