@@ -431,15 +431,27 @@ func equality() *Node {
 	}
 }
 
-func bit_or() *Node {
+func bit_xor() *Node {
 	lhs := equality()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty != '^' {
+			return lhs
+		}
+		pos++
+		lhs = new_binop('^', lhs, equality())
+	}
+}
+
+func bit_or() *Node {
+	lhs := bit_xor()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != '|' {
 			return lhs
 		}
 		pos++
-		lhs = new_binop('|', lhs, equality())
+		lhs = new_binop('|', lhs, bit_xor())
 	}
 }
 
