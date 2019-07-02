@@ -315,6 +315,27 @@ func gen_expr(node *Node) int {
 		return gen_binop(IR_DIV, node)
 	case '<':
 		return gen_binop(IR_LT, node)
+	case '?':
+		{
+			x := nlabel
+			nlabel++
+			y := nlabel
+			nlabel++
+			r := gen_expr(node.cond)
+
+			add(IR_UNLESS, r, x)
+			r2 := gen_expr(node.then)
+			add(IR_MOV, r, r2)
+			kill(r2)
+			add(IR_JMP, y, -1)
+
+			label(x)
+			r3 := gen_expr(node.els)
+			add(IR_MOV, r, r3)
+			kill(r2)
+			label(y)
+			return r
+		}
 	case '!':
 		{
 			lhs := gen_expr(node.expr)

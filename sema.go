@@ -211,6 +211,12 @@ func walk(node *Node, env *Env, decay bool) *Node {
 			return maybe_decay(node, decay)
 		}
 		error("member missing: %s", node.name)
+	case '?':
+		node.cond = walk(node.cond, env, true)
+		node.then = walk(node.then, env, true)
+		node.els = walk(node.els, env, true)
+		node.ty = node.then.ty
+		return node
 	case '*', '/', '<', ND_EQ, ND_NE, ND_LOGAND, ND_LOGOR:
 		node.lhs = walk(node.lhs, env, true)
 		node.rhs = walk(node.rhs, env, true)

@@ -457,10 +457,25 @@ func logor() *Node {
 	return lhs
 }
 
+func conditional() *Node {
+	cond := logor()
+	if !consume('?') {
+		return cond
+	}
+
+	node := new(Node)
+	node.op = '?'
+	node.cond = cond
+	node.then = assign()
+	expect(':')
+	node.els = assign()
+	return node
+}
+
 func assign() *Node {
-	lhs := logor()
+	lhs := conditional()
 	if consume('=') {
-		return new_binop('=', lhs, logor())
+		return new_binop('=', lhs, conditional())
 	}
 	return lhs
 }
