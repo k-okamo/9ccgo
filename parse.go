@@ -253,7 +253,7 @@ func primary() *Node {
 			expect(')')
 			return node
 		}
-		node := assign()
+		node := expr()
 		expect(')')
 		return node
 	}
@@ -367,7 +367,7 @@ func mul() *Node {
 func read_array(ty *Type) *Type {
 	v := new_vec()
 	for consume('[') {
-		l := primary()
+		l := expr()
 		if l.op != ND_NUM {
 			error("number expected")
 		}
@@ -466,18 +466,26 @@ func conditional() *Node {
 	node := new(Node)
 	node.op = '?'
 	node.cond = cond
-	node.then = assign()
+	node.then = expr()
 	expect(':')
-	node.els = assign()
+	node.els = conditional()
 	return node
 }
 
 func assign() *Node {
 	lhs := conditional()
-	if consume('=') {
-		return new_binop('=', lhs, conditional())
+	if !consume('=') {
+		return lhs
 	}
-	return lhs
+	return new_binop('=', lhs, conditional())
+}
+
+func expr() *Node {
+	lhs := assign()
+	if !consume(',') {
+		return lhs
+	}
+	return new_binop(',', lhs, expr())
 }
 
 func ttype() *Type {
@@ -525,7 +533,7 @@ func param() *Node {
 }
 
 func expr_stmt() *Node {
-	node := new_expr(ND_EXPR_STMT, assign())
+	node := new_expr(ND_EXPR_STMT, expr())
 	expect(';')
 	return node
 }
@@ -547,7 +555,7 @@ func stmt() *Node {
 		pos++
 		node.op = ND_IF
 		expect('(')
-		node.cond = assign()
+		node.cond = expr()
 		expect(')')
 
 		node.then = stmt()
@@ -565,9 +573,9 @@ func stmt() *Node {
 		} else {
 			node.init = expr_stmt()
 		}
-		node.cond = assign()
+		node.cond = expr()
 		expect(';')
-		node.inc = new_expr(ND_EXPR_STMT, assign())
+		node.inc = new_expr(ND_EXPR_STMT, expr())
 		expect(')')
 		node.body = stmt()
 		return node
@@ -577,7 +585,7 @@ func stmt() *Node {
 		node.init = &null_stmt
 		node.inc = &null_stmt
 		expect('(')
-		node.cond = assign()
+		node.cond = expr()
 		expect(')')
 		node.body = stmt()
 		return node
@@ -587,14 +595,14 @@ func stmt() *Node {
 		node.body = stmt()
 		expect(TK_WHILE)
 		expect('(')
-		node.cond = assign()
+		node.cond = expr()
 		expect(')')
 		expect(';')
 		return node
 	case TK_RETURN:
 		pos++
 		node.op = ND_RETURN
-		node.expr = assign()
+		node.expr = expr()
 		expect(';')
 		return node
 	case '{':
