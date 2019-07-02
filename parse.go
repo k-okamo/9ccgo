@@ -431,15 +431,27 @@ func equality() *Node {
 	}
 }
 
-func logand() *Node {
+func bit_or() *Node {
 	lhs := equality()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty != '|' {
+			return lhs
+		}
+		pos++
+		lhs = new_binop('|', lhs, equality())
+	}
+}
+
+func logand() *Node {
+	lhs := bit_or()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != TK_LOGAND {
 			return lhs
 		}
 		pos++
-		lhs = new_binop(ND_LOGAND, lhs, equality())
+		lhs = new_binop(ND_LOGAND, lhs, bit_or())
 	}
 	return lhs
 }
