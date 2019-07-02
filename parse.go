@@ -9,10 +9,10 @@ package main
 // Semantic errors are detected in a later pass.
 
 var (
-	pos    = 0
-	int_ty = Type{ty: INT, size: 4, align: 4}
-	//char_ty   = Type{ty: CHAR, ptr_to: nil}
+	pos       = 0
+	int_ty    = Type{ty: INT, size: 4, align: 4}
 	null_stmt = Node{op: ND_NULL}
+	penv      *PEnv
 )
 
 const (
@@ -105,6 +105,18 @@ type Type struct {
 	offset  int
 }
 
+type PEnv struct {
+	tags *Map
+	next *PEnv
+}
+
+func new_penv(next *PEnv) *PEnv {
+	env := new(PEnv)
+	env.tags = new_map()
+	env.next = next
+	return env
+}
+
 func expect(ty int) {
 	t := tokens.data[pos].(*Token)
 	if t.ty != ty {
@@ -153,11 +165,35 @@ func read_type() *Type {
 
 	if t.ty == TK_STRUCT {
 		pos++
-		expect('{')
-		members := new_vec()
-		for !consume('}') {
-			vec_push(members, decl())
+
+		var tag string
+		t := tokens.data[pos].(*Token)
+		if t.ty == TK_IDENT {
+			pos++
+			tag = t.name
 		}
+
+		var members *Vector
+		if consume('{') {
+			members = new_vec()
+			for !consume('}') {
+				vec_push(members, decl())
+			}
+		}
+
+		if tag == "" && members == nil {
+			error("bad struct definition")
+		}
+
+		if tag != "" && members != nil {
+			map_put(penv.tags, tag, members)
+		} else if tag != "" && members == nil {
+			members = map_get(penv.tags, tag).(*Vector)
+			if members == nil {
+				error("incomplete type: %s", tag)
+			}
+		}
+
 		return struct_of(members)
 	}
 
@@ -534,9 +570,11 @@ func compound_stmt() *Node {
 	node.op = ND_COMP_STMT
 	node.stmts = new_vec()
 
+	penv = new_penv(penv)
 	for !consume('}') {
 		vec_push(node.stmts, stmt())
 	}
+	penv = penv.next
 	return node
 }
 
@@ -590,6 +628,8 @@ func toplevel() *Node {
 func parse(tokens_ *Vector) *Vector {
 	tokens = tokens_
 	pos = 0
+	penv = new_penv(penv)
+
 	v := new_vec()
 	for (tokens.data[pos].(*Token)).ty != TK_EOF {
 		vec_push(v, toplevel())
