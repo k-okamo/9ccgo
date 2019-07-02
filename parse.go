@@ -47,6 +47,7 @@ const (
 const (
 	INT = iota
 	CHAR
+	VOID
 	PTR
 	ARY
 	STRUCT
@@ -135,6 +136,7 @@ func new_prim_ty(ty, size int) *Type {
 	return ret
 }
 
+func void_tyf() *Type { return new_prim_ty(VOID, 0) }
 func char_tyf() *Type { return new_prim_ty(CHAR, 1) }
 func int_tyf() *Type  { return new_prim_ty(INT, 4) }
 
@@ -152,33 +154,34 @@ func is_typename() bool {
 	if t.ty == TK_IDENT {
 		return map_exists(penv.typedefs, t.name)
 	}
-	return t.ty == TK_INT || t.ty == TK_CHAR || t.ty == TK_STRUCT
+	return t.ty == TK_INT || t.ty == TK_CHAR || t.ty == TK_VOID || t.ty == TK_STRUCT
 }
 
 func read_type() *Type {
 	t := tokens.data[pos].(*Token)
+	pos++
 
 	if t.ty == TK_IDENT {
 		ty := map_get(penv.typedefs, t.name).(*Type)
-		if ty != nil {
-			pos++
+		if ty == nil {
+			pos--
 		}
 		return ty
 	}
 
 	if t.ty == TK_INT {
-		pos++
 		return int_tyf()
 	}
 
 	if t.ty == TK_CHAR {
-		pos++
 		return char_tyf()
 	}
 
-	if t.ty == TK_STRUCT {
-		pos++
+	if t.ty == TK_VOID {
+		return void_tyf()
+	}
 
+	if t.ty == TK_STRUCT {
 		var tag string
 		t := tokens.data[pos].(*Token)
 		if t.ty == TK_IDENT {
@@ -210,6 +213,7 @@ func read_type() *Type {
 		return struct_of(members)
 	}
 
+	pos--
 	return nil
 }
 
@@ -482,6 +486,9 @@ func decl() *Node {
 
 	// Read the second half of type name (e.g. `[3][5]`).
 	node.ty = read_array(node.ty)
+	if node.ty.ty == VOID {
+		error("void variable: %s", node.name)
+	}
 
 	// Read an initializer.
 	if consume('=') {

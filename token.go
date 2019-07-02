@@ -26,6 +26,7 @@ var (
 		{name: "sizeof", ty: TK_SIZEOF},
 		{name: "struct", ty: TK_STRUCT},
 		{name: "typedef", ty: TK_TYPEDEF},
+		{name: "void", ty: TK_VOID},
 		{name: "while", ty: TK_WHILE},
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
@@ -55,6 +56,7 @@ const (
 	TK_TYPEDEF              // "typedef"
 	TK_INT                  // "int"
 	TK_CHAR                 // "char"
+	TK_VOID                 // "void"
 	TK_STRUCT               // "struct"
 	TK_IF                   // "if"
 	TK_ELSE                 // "else"
