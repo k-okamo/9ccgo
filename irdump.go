@@ -24,6 +24,7 @@ var irinfo = map[int]IRInfo{
 	IR_EQ:          {name: "EQ", ty: IR_TY_REG_REG},
 	IR_NE:          {name: "NE", ty: IR_TY_REG_REG},
 	IR_LT:          {name: "LT", ty: IR_TY_REG_REG},
+	IR_AND:         {name: "AND", ty: IR_TY_REG_REG},
 	IR_OR:          {name: "OR", ty: IR_TY_REG_REG},
 	IR_XOR:         {name: "XOR", ty: IR_TY_REG_REG},
 	IR_JMP:         {name: "JMP", ty: IR_TY_JMP},

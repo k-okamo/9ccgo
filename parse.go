@@ -431,16 +431,30 @@ func equality() *Node {
 	}
 }
 
-func bit_xor() *Node {
+func bit_and() *Node {
 	lhs := equality()
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty != '&' {
+			return lhs
+		}
+		pos++
+		lhs = new_binop('&', lhs, equality())
+	}
+	return lhs
+}
+
+func bit_xor() *Node {
+	lhs := bit_and()
 	for {
 		t := tokens.data[pos].(*Token)
 		if t.ty != '^' {
 			return lhs
 		}
 		pos++
-		lhs = new_binop('^', lhs, equality())
+		lhs = new_binop('^', lhs, bit_and())
 	}
+	return lhs
 }
 
 func bit_or() *Node {
@@ -453,6 +467,7 @@ func bit_or() *Node {
 		pos++
 		lhs = new_binop('|', lhs, bit_xor())
 	}
+	return lhs
 }
 
 func logand() *Node {
