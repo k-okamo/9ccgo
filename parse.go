@@ -36,6 +36,7 @@ const (
 	ND_LOGAND                 // &&
 	ND_SHL                    // <<
 	ND_SHR                    // >>
+	ND_MOD                    // %
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
 	ND_ALIGNOF                // "_Alignof"
@@ -361,6 +362,8 @@ func mul() *Node {
 			lhs = new_binop('*', lhs, unary())
 		} else if consume('/') {
 			lhs = new_binop('/', lhs, unary())
+		} else if consume('%') {
+			lhs = new_binop('%', lhs, unary())
 		} else {
 			return lhs
 		}

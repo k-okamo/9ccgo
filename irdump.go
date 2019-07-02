@@ -37,6 +37,7 @@ var irinfo = map[int]IRInfo{
 	IR_LOAD8:       {name: "LOAD8", ty: IR_TY_REG_REG},
 	IR_LOAD32:      {name: "LOAD32", ty: IR_TY_REG_REG},
 	IR_LOAD64:      {name: "LOAD64", ty: IR_TY_REG_REG},
+	IR_MOD:         {name: "MOD", ty: IR_TY_REG_REG},
 	IR_STORE8:      {name: "STORE8", ty: IR_TY_REG_REG},
 	IR_STORE32:     {name: "STORE32", ty: IR_TY_REG_REG},
 	IR_STORE64:     {name: "STORE64", ty: IR_TY_REG_REG},

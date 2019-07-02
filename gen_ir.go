@@ -44,6 +44,7 @@ const (
 	IR_XOR
 	IR_SHL
 	IR_SHR
+	IR_MOD
 	IR_JMP
 	IR_IF
 	IR_UNLESS
@@ -319,6 +320,8 @@ func gen_expr(node *Node) int {
 		return gen_binop(IR_MUL, node)
 	case '/':
 		return gen_binop(IR_DIV, node)
+	case '%':
+		return gen_binop(IR_MOD, node)
 	case '<':
 		return gen_binop(IR_LT, node)
 	case ND_LE:

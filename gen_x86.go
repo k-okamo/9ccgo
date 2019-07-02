@@ -166,6 +166,11 @@ func gen(fn *Function) {
 			fmt.Printf("\tcqo\n")
 			fmt.Printf("\tdiv %s\n", regs[ir.rhs])
 			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+		case IR_MOD:
+			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
+			fmt.Printf("\tcqo\n")
+			fmt.Printf("\tdiv %s\n", regs[ir.rhs])
+			fmt.Printf("\tmov %s, rdx\n", regs[ir.lhs])
 		case IR_NOP:
 			break
 		default:
