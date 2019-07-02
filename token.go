@@ -280,7 +280,7 @@ loop:
 		}
 
 		// Single-letter token
-		if strchr("+-*/;=(),{}<>[]&.", c) != "" {
+		if strchr("+-*/;=(),{}<>[]&.!", c) != "" {
 			add_token(v, int(c), s)
 			s = s[1:]
 			continue
