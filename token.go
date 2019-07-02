@@ -25,6 +25,7 @@ var (
 		{name: "return", ty: TK_RETURN},
 		{name: "sizeof", ty: TK_SIZEOF},
 		{name: "struct", ty: TK_STRUCT},
+		{name: "typedef", ty: TK_TYPEDEF},
 		{name: "while", ty: TK_WHILE},
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
@@ -51,6 +52,7 @@ const (
 	TK_IDENT                // Identifier
 	TK_ARROW                // ->
 	TK_EXTERN               // "extern"
+	TK_TYPEDEF              // "typedef"
 	TK_INT                  // "int"
 	TK_CHAR                 // "char"
 	TK_STRUCT               // "struct"

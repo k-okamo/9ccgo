@@ -106,12 +106,14 @@ type Type struct {
 }
 
 type PEnv struct {
-	tags *Map
-	next *PEnv
+	typedefs *Map
+	tags     *Map
+	next     *PEnv
 }
 
 func new_penv(next *PEnv) *PEnv {
 	env := new(PEnv)
+	env.typedefs = new_map()
 	env.tags = new_map()
 	env.next = next
 	return env
@@ -147,11 +149,22 @@ func consume(ty int) bool {
 
 func is_typename() bool {
 	t := tokens.data[pos].(*Token)
+	if t.ty == TK_IDENT {
+		return map_exists(penv.typedefs, t.name)
+	}
 	return t.ty == TK_INT || t.ty == TK_CHAR || t.ty == TK_STRUCT
 }
 
 func read_type() *Type {
 	t := tokens.data[pos].(*Token)
+
+	if t.ty == TK_IDENT {
+		ty := map_get(penv.typedefs, t.name).(*Type)
+		if ty != nil {
+			pos++
+		}
+		return ty
+	}
 
 	if t.ty == TK_INT {
 		pos++
@@ -497,6 +510,12 @@ func stmt() *Node {
 	t := tokens.data[pos].(*Token)
 
 	switch t.ty {
+	case TK_TYPEDEF:
+		pos++
+		node := decl()
+		// assert(node.name)
+		map_put(penv.typedefs, node.name, node.ty)
+		return &null_stmt
 	case TK_INT, TK_CHAR, TK_STRUCT:
 		return decl()
 	case TK_IF:
@@ -565,6 +584,9 @@ func stmt() *Node {
 		pos++
 		return &null_stmt
 	default:
+		if is_typename() {
+			return decl()
+		}
 		return expr_stmt()
 	}
 	return nil
