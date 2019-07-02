@@ -31,9 +31,11 @@ var (
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "->", ty: TK_ARROW},
+		{name: "<<", ty: TK_SHL},
 		{name: "<=", ty: TK_LE},
 		{name: "==", ty: TK_EQ},
 		{name: ">=", ty: TK_GE},
+		{name: ">>", ty: TK_SHR},
 		{name: "||", ty: TK_LOGOR},
 	}
 	escaped = map[rune]int{
@@ -71,6 +73,8 @@ const (
 	TK_GE                   // >=
 	TK_LOGOR                // ||
 	TK_LOGAND               // &&
+	TK_SHL                  // <<
+	TK_SHR                  // >>
 	TK_RETURN               // "return"
 	TK_SIZEOF               // "sizeof"
 	TK_ALIGNOF              // "_Alignof"

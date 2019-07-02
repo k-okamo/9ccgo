@@ -120,6 +120,12 @@ func gen(fn *Function) {
 			fmt.Printf("\tor %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_XOR:
 			fmt.Printf("\txor %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_SHL:
+			fmt.Printf("\tmov cl, %s\n", regs8[ir.rhs])
+			fmt.Printf("\tshl %s, cl\n", regs[ir.lhs])
+		case IR_SHR:
+			fmt.Printf("\tmov cl, %s\n", regs8[ir.rhs])
+			fmt.Printf("\tshr %s, cl\n", regs[ir.lhs])
 		case IR_JMP:
 			fmt.Printf("\tjmp .L%d\n", ir.lhs)
 		case IR_IF:

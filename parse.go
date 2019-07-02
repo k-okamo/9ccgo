@@ -34,6 +34,8 @@ const (
 	ND_LE                     // <=
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
+	ND_SHL                    // <<
+	ND_SHR                    // >>
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
 	ND_ALIGNOF                // "_Alignof"
@@ -397,17 +399,31 @@ func parse_add() *Node {
 	return lhs
 }
 
-func rel() *Node {
+func shift() *Node {
 	lhs := parse_add()
 	for {
+		if consume(TK_SHL) {
+			lhs = new_binop(ND_SHL, lhs, parse_add())
+		} else if consume(TK_SHR) {
+			lhs = new_binop(ND_SHR, lhs, parse_add())
+		} else {
+			return lhs
+		}
+	}
+	return lhs
+}
+
+func relational() *Node {
+	lhs := shift()
+	for {
 		if consume('<') {
-			lhs = new_binop('<', lhs, parse_add())
+			lhs = new_binop('<', lhs, shift())
 		} else if consume('>') {
-			lhs = new_binop('<', parse_add(), lhs)
+			lhs = new_binop('<', shift(), lhs)
 		} else if consume(TK_LE) {
-			lhs = new_binop(ND_LE, lhs, parse_add())
+			lhs = new_binop(ND_LE, lhs, shift())
 		} else if consume(TK_GE) {
-			lhs = new_binop(ND_LE, parse_add(), lhs)
+			lhs = new_binop(ND_LE, shift(), lhs)
 		} else {
 			return lhs
 		}
@@ -415,12 +431,12 @@ func rel() *Node {
 }
 
 func equality() *Node {
-	lhs := rel()
+	lhs := relational()
 	for {
 		if consume(TK_EQ) {
-			lhs = new_binop(ND_EQ, lhs, rel())
+			lhs = new_binop(ND_EQ, lhs, relational())
 		} else if consume(TK_NE) {
-			lhs = new_binop(ND_NE, lhs, rel())
+			lhs = new_binop(ND_NE, lhs, relational())
 		} else {
 			return lhs
 		}

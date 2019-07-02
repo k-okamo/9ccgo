@@ -217,7 +217,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.els = walk(node.els, env, true)
 		node.ty = node.then.ty
 		return node
-	case '*', '/', '<', '|', '^', '&', ND_EQ, ND_NE, ND_LE, ND_LOGAND, ND_LOGOR:
+	case '*', '/', '<', '|', '^', '&', ND_EQ, ND_NE, ND_LE, ND_SHL, ND_SHR, ND_LOGAND, ND_LOGOR:
 		node.lhs = walk(node.lhs, env, true)
 		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.lhs.ty
