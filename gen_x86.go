@@ -112,6 +112,8 @@ func gen(fn *Function) {
 			emit_cmp(ir, "setne")
 		case IR_LT:
 			emit_cmp(ir, "setl")
+		case IR_LE:
+			emit_cmp(ir, "setle")
 		case IR_AND:
 			fmt.Printf("\tand %s, %s\n", regs[ir.lhs], regs[ir.rhs])
 		case IR_OR:

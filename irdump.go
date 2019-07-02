@@ -23,6 +23,7 @@ var irinfo = map[int]IRInfo{
 	IR_LABEL_ADDR:  {name: "", ty: IR_TY_LABEL_ADDR},
 	IR_EQ:          {name: "EQ", ty: IR_TY_REG_REG},
 	IR_NE:          {name: "NE", ty: IR_TY_REG_REG},
+	IR_LE:          {name: "LE", ty: IR_TY_REG_REG},
 	IR_LT:          {name: "LT", ty: IR_TY_REG_REG},
 	IR_AND:         {name: "AND", ty: IR_TY_REG_REG},
 	IR_OR:          {name: "OR", ty: IR_TY_REG_REG},

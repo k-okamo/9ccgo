@@ -31,6 +31,7 @@ const (
 	ND_DOT                    // Struct member access
 	ND_EQ                     // ==
 	ND_NE                     // !=
+	ND_LE                     // <=
 	ND_LOGOR                  // ||
 	ND_LOGAND                 // &&
 	ND_RETURN                 // "return"
@@ -403,6 +404,10 @@ func rel() *Node {
 			lhs = new_binop('<', lhs, parse_add())
 		} else if consume('>') {
 			lhs = new_binop('<', parse_add(), lhs)
+		} else if consume(TK_LE) {
+			lhs = new_binop(ND_LE, lhs, parse_add())
+		} else if consume(TK_GE) {
+			lhs = new_binop(ND_LE, parse_add(), lhs)
 		} else {
 			return lhs
 		}

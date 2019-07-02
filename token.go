@@ -31,7 +31,9 @@ var (
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "->", ty: TK_ARROW},
+		{name: "<=", ty: TK_LE},
 		{name: "==", ty: TK_EQ},
+		{name: ">=", ty: TK_GE},
 		{name: "||", ty: TK_LOGOR},
 	}
 	escaped = map[rune]int{
@@ -65,6 +67,8 @@ const (
 	TK_WHILE                // "while"
 	TK_EQ                   // ==
 	TK_NE                   // !=
+	TK_LE                   // <=
+	TK_GE                   // >=
 	TK_LOGOR                // ||
 	TK_LOGAND               // &&
 	TK_RETURN               // "return"
