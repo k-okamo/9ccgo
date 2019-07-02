@@ -354,12 +354,13 @@ func unary() *Node {
 func mul() *Node {
 	lhs := unary()
 	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != '*' && t.ty != '/' {
+		if consume('*') {
+			lhs = new_binop('*', lhs, unary())
+		} else if consume('/') {
+			lhs = new_binop('/', lhs, unary())
+		} else {
 			return lhs
 		}
-		pos++
-		lhs = new_binop(t.ty, lhs, unary())
 	}
 	return lhs
 }
@@ -382,15 +383,15 @@ func read_array(ty *Type) *Type {
 }
 
 func parse_add() *Node {
-
 	lhs := mul()
 	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != '+' && t.ty != '-' {
+		if consume('+') {
+			lhs = new_binop('+', lhs, mul())
+		} else if consume('-') {
+			lhs = new_binop('-', lhs, mul())
+		} else {
 			return lhs
 		}
-		pos++
-		lhs = new_binop(t.ty, lhs, mul())
 	}
 	return lhs
 }
@@ -398,47 +399,32 @@ func parse_add() *Node {
 func rel() *Node {
 	lhs := parse_add()
 	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty == '<' {
-			pos++
+		if consume('<') {
 			lhs = new_binop('<', lhs, parse_add())
-			continue
-		}
-		if t.ty == '>' {
-			pos++
+		} else if consume('>') {
 			lhs = new_binop('<', parse_add(), lhs)
-			continue
+		} else {
+			return lhs
 		}
-		return lhs
 	}
 }
 
 func equality() *Node {
 	lhs := rel()
 	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty == TK_EQ {
-			pos++
+		if consume(TK_EQ) {
 			lhs = new_binop(ND_EQ, lhs, rel())
-			continue
-		}
-		if t.ty == TK_NE {
-			pos++
+		} else if consume(TK_NE) {
 			lhs = new_binop(ND_NE, lhs, rel())
-			continue
+		} else {
+			return lhs
 		}
-		return lhs
 	}
 }
 
 func bit_and() *Node {
 	lhs := equality()
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != '&' {
-			return lhs
-		}
-		pos++
+	for consume('&') {
 		lhs = new_binop('&', lhs, equality())
 	}
 	return lhs
@@ -446,12 +432,7 @@ func bit_and() *Node {
 
 func bit_xor() *Node {
 	lhs := bit_and()
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != '^' {
-			return lhs
-		}
-		pos++
+	for consume('^') {
 		lhs = new_binop('^', lhs, bit_and())
 	}
 	return lhs
@@ -459,12 +440,7 @@ func bit_xor() *Node {
 
 func bit_or() *Node {
 	lhs := bit_xor()
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != '|' {
-			return lhs
-		}
-		pos++
+	for consume('|') {
 		lhs = new_binop('|', lhs, bit_xor())
 	}
 	return lhs
@@ -472,12 +448,7 @@ func bit_or() *Node {
 
 func logand() *Node {
 	lhs := bit_or()
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != TK_LOGAND {
-			return lhs
-		}
-		pos++
+	for consume(TK_LOGAND) {
 		lhs = new_binop(ND_LOGAND, lhs, bit_or())
 	}
 	return lhs
@@ -485,12 +456,7 @@ func logand() *Node {
 
 func logor() *Node {
 	lhs := logand()
-	for {
-		t := tokens.data[pos].(*Token)
-		if t.ty != TK_LOGOR {
-			return lhs
-		}
-		pos++
+	for consume(TK_LOGOR) {
 		lhs = new_binop(ND_LOGOR, lhs, logand())
 	}
 	return lhs
