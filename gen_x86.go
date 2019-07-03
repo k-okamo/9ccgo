@@ -78,16 +78,18 @@ func gen(fn *Function) {
 
 	for i := 0; i < fn.ir.len; i++ {
 		ir := fn.ir.data[i].(*IR)
+		lhs := ir.lhs
+		rhs := ir.rhs
 
 		switch ir.op {
 		case IR_IMM:
-			fmt.Printf("\tmov %s, %d\n", regs[ir.lhs], ir.rhs)
+			fmt.Printf("\tmov %s, %d\n", regs[lhs], rhs)
 		case IR_BPREL:
-			fmt.Printf("\tlea %s, [rbp-%d]\n", regs[ir.lhs], ir.rhs)
+			fmt.Printf("\tlea %s, [rbp-%d]\n", regs[lhs], rhs)
 		case IR_MOV:
-			fmt.Printf("\tmov %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tmov %s, %s\n", regs[lhs], regs[rhs])
 		case IR_RETURN:
-			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
+			fmt.Printf("\tmov rax, %s\n", regs[lhs])
 			fmt.Printf("\tjmp %s\n", ret)
 		case IR_CALL:
 			{
@@ -100,14 +102,14 @@ func gen(fn *Function) {
 				fmt.Printf("\tcall %s\n", ir.name)
 				fmt.Printf("\tpop r11\n")
 				fmt.Printf("\tpop r10\n")
-				fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+				fmt.Printf("\tmov %s, rax\n", regs[lhs])
 			}
 		case IR_LABEL:
-			fmt.Printf(".L%d:\n", ir.lhs)
+			fmt.Printf(".L%d:\n", lhs)
 		case IR_LABEL_ADDR:
-			fmt.Printf("\tlea %s, %s\n", regs[ir.lhs], ir.name)
+			fmt.Printf("\tlea %s, %s\n", regs[lhs], ir.name)
 		case IR_NEG:
-			fmt.Printf("\tneg %s\n", regs[ir.lhs])
+			fmt.Printf("\tneg %s\n", regs[lhs])
 		case IR_EQ:
 			emit_cmp(ir, "sete")
 		case IR_NE:
@@ -117,70 +119,70 @@ func gen(fn *Function) {
 		case IR_LE:
 			emit_cmp(ir, "setle")
 		case IR_AND:
-			fmt.Printf("\tand %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tand %s, %s\n", regs[lhs], regs[rhs])
 		case IR_OR:
-			fmt.Printf("\tor %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tor %s, %s\n", regs[lhs], regs[rhs])
 		case IR_XOR:
-			fmt.Printf("\txor %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\txor %s, %s\n", regs[lhs], regs[rhs])
 		case IR_SHL:
-			fmt.Printf("\tmov cl, %s\n", regs8[ir.rhs])
-			fmt.Printf("\tshl %s, cl\n", regs[ir.lhs])
+			fmt.Printf("\tmov cl, %s\n", regs8[rhs])
+			fmt.Printf("\tshl %s, cl\n", regs[lhs])
 		case IR_SHR:
-			fmt.Printf("\tmov cl, %s\n", regs8[ir.rhs])
-			fmt.Printf("\tshr %s, cl\n", regs[ir.lhs])
+			fmt.Printf("\tmov cl, %s\n", regs8[rhs])
+			fmt.Printf("\tshr %s, cl\n", regs[lhs])
 		case IR_JMP:
-			fmt.Printf("\tjmp .L%d\n", ir.lhs)
+			fmt.Printf("\tjmp .L%d\n", lhs)
 		case IR_IF:
-			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
-			fmt.Printf("\tjne .L%d\n", ir.rhs)
+			fmt.Printf("\tcmp %s, 0\n", regs[lhs])
+			fmt.Printf("\tjne .L%d\n", rhs)
 		case IR_UNLESS:
-			fmt.Printf("\tcmp %s, 0\n", regs[ir.lhs])
-			fmt.Printf("\tje .L%d\n", ir.rhs)
+			fmt.Printf("\tcmp %s, 0\n", regs[lhs])
+			fmt.Printf("\tje .L%d\n", rhs)
 		case IR_LOAD8:
-			fmt.Printf("\tmov %s, [%s]\n", regs8[ir.lhs], regs[ir.rhs])
-			fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
+			fmt.Printf("\tmov %s, [%s]\n", regs8[lhs], regs[rhs])
+			fmt.Printf("\tmovzb %s, %s\n", regs[lhs], regs8[lhs])
 		case IR_LOAD32:
-			fmt.Printf("\tmov %s, [%s]\n", regs32[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tmov %s, [%s]\n", regs32[lhs], regs[rhs])
 		case IR_LOAD64:
-			fmt.Printf("\tmov %s, [%s]\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tmov %s, [%s]\n", regs[lhs], regs[rhs])
 		case IR_STORE8:
-			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs8[ir.rhs])
+			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs8[rhs])
 		case IR_STORE32:
-			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs32[ir.rhs])
+			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs32[rhs])
 		case IR_STORE64:
-			fmt.Printf("\tmov [%s], %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs[rhs])
 		case IR_STORE8_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg8[ir.rhs])
+			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg8[rhs])
 		case IR_STORE32_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg32[ir.rhs])
+			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg32[rhs])
 		case IR_STORE64_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg64[ir.rhs])
+			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg64[rhs])
 		case IR_ADD:
-			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tadd %s, %s\n", regs[lhs], regs[rhs])
 		case IR_ADD_IMM:
-			fmt.Printf("\tadd %s, %d\n", regs[ir.lhs], ir.rhs)
+			fmt.Printf("\tadd %s, %d\n", regs[lhs], rhs)
 		case IR_SUB:
-			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+			fmt.Printf("\tsub %s, %s\n", regs[lhs], regs[rhs])
 		case IR_SUB_IMM:
-			fmt.Printf("\tsub %s, %d\n", regs[ir.lhs], ir.rhs)
+			fmt.Printf("\tsub %s, %d\n", regs[lhs], rhs)
 		case IR_MUL:
-			fmt.Printf("\tmov rax, %s\n", regs[ir.rhs])
-			fmt.Printf("\tmul %s\n", regs[ir.lhs])
-			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+			fmt.Printf("\tmov rax, %s\n", regs[rhs])
+			fmt.Printf("\tmul %s\n", regs[lhs])
+			fmt.Printf("\tmov %s, rax\n", regs[lhs])
 		case IR_MUL_IMM:
-			fmt.Printf("\tmov rax, %d\n", ir.rhs)
-			fmt.Printf("\tmul %s\n", regs[ir.lhs])
-			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+			fmt.Printf("\tmov rax, %d\n", rhs)
+			fmt.Printf("\tmul %s\n", regs[lhs])
+			fmt.Printf("\tmov %s, rax\n", regs[lhs])
 		case IR_DIV:
-			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
+			fmt.Printf("\tmov rax, %s\n", regs[lhs])
 			fmt.Printf("\tcqo\n")
-			fmt.Printf("\tdiv %s\n", regs[ir.rhs])
-			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+			fmt.Printf("\tdiv %s\n", regs[rhs])
+			fmt.Printf("\tmov %s, rax\n", regs[lhs])
 		case IR_MOD:
-			fmt.Printf("\tmov rax, %s\n", regs[ir.lhs])
+			fmt.Printf("\tmov rax, %s\n", regs[lhs])
 			fmt.Printf("\tcqo\n")
-			fmt.Printf("\tdiv %s\n", regs[ir.rhs])
-			fmt.Printf("\tmov %s, rdx\n", regs[ir.lhs])
+			fmt.Printf("\tdiv %s\n", regs[rhs])
+			fmt.Printf("\tmov %s, rdx\n", regs[lhs])
 		case IR_NOP:
 			break
 		default:
