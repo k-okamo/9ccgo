@@ -227,7 +227,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.rhs.ty
 		return node
-	case ND_NEG, '!':
+	case ND_PRE_INC, ND_PRE_DEC, ND_POST_INC, ND_POST_DEC, ND_NEG, '!':
 		node.expr = walk(node.expr, env, true)
 		node.ty = node.expr.ty
 		return node

@@ -30,6 +30,8 @@ var (
 		{name: "while", ty: TK_WHILE},
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
+		{name: "++", ty: TK_INC},
+		{name: "--", ty: TK_DEC},
 		{name: "->", ty: TK_ARROW},
 		{name: "<<", ty: TK_SHL},
 		{name: "<=", ty: TK_LE},
@@ -75,6 +77,8 @@ const (
 	TK_LOGAND               // &&
 	TK_SHL                  // <<
 	TK_SHR                  // >>
+	TK_INC                  // ++
+	TK_DEC                  // --
 	TK_RETURN               // "return"
 	TK_SIZEOF               // "sizeof"
 	TK_ALIGNOF              // "_Alignof"

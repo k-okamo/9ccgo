@@ -38,6 +38,10 @@ const (
 	ND_SHR                    // >>
 	ND_MOD                    // %
 	ND_NEG                    // -
+	ND_PRE_INC                // pre ++
+	ND_PRE_DEC                // pre --
+	ND_POST_INC               // post ++
+	ND_POST_DEC               // post --
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
 	ND_ALIGNOF                // "_Alignof"
@@ -309,21 +313,25 @@ func postfix() *Node {
 	lhs := primary()
 
 	for {
+		if consume(TK_INC) {
+			lhs = new_expr(ND_POST_INC, lhs)
+			continue
+		}
+
+		if consume(TK_DEC) {
+			lhs = new_expr(ND_POST_DEC, lhs)
+			continue
+		}
+
 		if consume('.') {
-			node := new(Node)
-			node.op = ND_DOT
-			node.expr = lhs
-			node.name = ident()
-			lhs = node
+			lhs = new_expr(ND_DOT, lhs)
+			lhs.name = ident()
 			continue
 		}
 
 		if consume(TK_ARROW) {
-			node := new(Node)
-			node.op = ND_DOT
-			node.expr = new_expr(ND_DEREF, lhs)
-			node.name = ident()
-			lhs = node
+			lhs = new_expr(ND_DOT, new_expr(ND_DEREF, lhs))
+			lhs.name = ident()
 			continue
 		}
 
@@ -349,6 +357,12 @@ func unary() *Node {
 	}
 	if consume('!') {
 		return new_expr('!', unary())
+	}
+	if consume(TK_INC) {
+		return new_expr(ND_PRE_INC, unary())
+	}
+	if consume(TK_DEC) {
+		return new_expr(ND_PRE_DEC, unary())
 	}
 	if consume(TK_SIZEOF) {
 		return new_expr(ND_SIZEOF, unary())
