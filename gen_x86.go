@@ -55,10 +55,14 @@ func gen_label() string {
 	return buf
 }
 
+func emit(format string, a ...interface{}) {
+	fmt.Printf("\t"+format+"\n", a...)
+}
+
 func emit_cmp(ir *IR, insn string) {
-	fmt.Printf("\tcmp %s, %s\n", regs[ir.lhs], regs[ir.rhs])
-	fmt.Printf("\t%s %s\n", insn, regs8[ir.lhs])
-	fmt.Printf("\tmovzb %s, %s\n", regs[ir.lhs], regs8[ir.lhs])
+	emit("cmp %s, %s", regs[ir.lhs], regs[ir.rhs])
+	emit("%s %s", insn, regs8[ir.lhs])
+	emit("movzb %s, %s", regs[ir.lhs], regs8[ir.lhs])
 }
 
 func gen(fn *Function) {
@@ -68,13 +72,13 @@ func gen(fn *Function) {
 
 	fmt.Printf(".global %s\n", fn.name)
 	fmt.Printf("%s:\n", fn.name)
-	fmt.Printf("\tpush rbp\n")
-	fmt.Printf("\tmov rbp, rsp\n")
-	fmt.Printf("\tsub rsp, %d\n", roundup(fn.stacksize, 16))
-	fmt.Printf("\tpush r12\n")
-	fmt.Printf("\tpush r13\n")
-	fmt.Printf("\tpush r14\n")
-	fmt.Printf("\tpush r15\n")
+	emit("push rbp")
+	emit("mov rbp, rsp")
+	emit("sub rsp, %d", roundup(fn.stacksize, 16))
+	emit("push r12")
+	emit("push r13")
+	emit("push r14")
+	emit("push r15")
 
 	for i := 0; i < fn.ir.len; i++ {
 		ir := fn.ir.data[i].(*IR)
@@ -83,33 +87,33 @@ func gen(fn *Function) {
 
 		switch ir.op {
 		case IR_IMM:
-			fmt.Printf("\tmov %s, %d\n", regs[lhs], rhs)
+			emit("mov %s, %d", regs[lhs], rhs)
 		case IR_BPREL:
-			fmt.Printf("\tlea %s, [rbp-%d]\n", regs[lhs], rhs)
+			emit("lea %s, [rbp-%d]", regs[lhs], rhs)
 		case IR_MOV:
-			fmt.Printf("\tmov %s, %s\n", regs[lhs], regs[rhs])
+			emit("mov %s, %s", regs[lhs], regs[rhs])
 		case IR_RETURN:
-			fmt.Printf("\tmov rax, %s\n", regs[lhs])
-			fmt.Printf("\tjmp %s\n", ret)
+			emit("mov rax, %s", regs[lhs])
+			emit("jmp %s", ret)
 		case IR_CALL:
 			{
 				for i := 0; i < ir.nargs; i++ {
-					fmt.Printf("\tmov %s, %s\n", argreg64[i], regs[ir.args[i]])
+					emit("mov %s, %s", argreg64[i], regs[ir.args[i]])
 				}
-				fmt.Printf("\tpush r10\n")
-				fmt.Printf("\tpush r11\n")
-				fmt.Printf("\tmov rax, 0\n")
-				fmt.Printf("\tcall %s\n", ir.name)
-				fmt.Printf("\tpop r11\n")
-				fmt.Printf("\tpop r10\n")
-				fmt.Printf("\tmov %s, rax\n", regs[lhs])
+				emit("push r10")
+				emit("push r11")
+				emit("mov rax, 0")
+				emit("call %s", ir.name)
+				emit("pop r11")
+				emit("pop r10")
+				emit("mov %s, rax", regs[lhs])
 			}
 		case IR_LABEL:
 			fmt.Printf(".L%d:\n", lhs)
 		case IR_LABEL_ADDR:
-			fmt.Printf("\tlea %s, %s\n", regs[lhs], ir.name)
+			emit("lea %s, %s", regs[lhs], ir.name)
 		case IR_NEG:
-			fmt.Printf("\tneg %s\n", regs[lhs])
+			emit("neg %s", regs[lhs])
 		case IR_EQ:
 			emit_cmp(ir, "sete")
 		case IR_NE:
@@ -119,70 +123,70 @@ func gen(fn *Function) {
 		case IR_LE:
 			emit_cmp(ir, "setle")
 		case IR_AND:
-			fmt.Printf("\tand %s, %s\n", regs[lhs], regs[rhs])
+			emit("and %s, %s", regs[lhs], regs[rhs])
 		case IR_OR:
-			fmt.Printf("\tor %s, %s\n", regs[lhs], regs[rhs])
+			emit("or %s, %s", regs[lhs], regs[rhs])
 		case IR_XOR:
-			fmt.Printf("\txor %s, %s\n", regs[lhs], regs[rhs])
+			emit("xor %s, %s", regs[lhs], regs[rhs])
 		case IR_SHL:
-			fmt.Printf("\tmov cl, %s\n", regs8[rhs])
-			fmt.Printf("\tshl %s, cl\n", regs[lhs])
+			emit("mov cl, %s", regs8[rhs])
+			emit("shl %s, cl", regs[lhs])
 		case IR_SHR:
-			fmt.Printf("\tmov cl, %s\n", regs8[rhs])
-			fmt.Printf("\tshr %s, cl\n", regs[lhs])
+			emit("mov cl, %s", regs8[rhs])
+			emit("shr %s, cl", regs[lhs])
 		case IR_JMP:
-			fmt.Printf("\tjmp .L%d\n", lhs)
+			emit("jmp .L%d", lhs)
 		case IR_IF:
-			fmt.Printf("\tcmp %s, 0\n", regs[lhs])
-			fmt.Printf("\tjne .L%d\n", rhs)
+			emit("cmp %s, 0", regs[lhs])
+			emit("jne .L%d", rhs)
 		case IR_UNLESS:
-			fmt.Printf("\tcmp %s, 0\n", regs[lhs])
-			fmt.Printf("\tje .L%d\n", rhs)
+			emit("cmp %s, 0", regs[lhs])
+			emit("je .L%d", rhs)
 		case IR_LOAD8:
-			fmt.Printf("\tmov %s, [%s]\n", regs8[lhs], regs[rhs])
-			fmt.Printf("\tmovzb %s, %s\n", regs[lhs], regs8[lhs])
+			emit("mov %s, [%s]", regs8[lhs], regs[rhs])
+			emit("movzb %s, %s", regs[lhs], regs8[lhs])
 		case IR_LOAD32:
-			fmt.Printf("\tmov %s, [%s]\n", regs32[lhs], regs[rhs])
+			emit("mov %s, [%s]", regs32[lhs], regs[rhs])
 		case IR_LOAD64:
-			fmt.Printf("\tmov %s, [%s]\n", regs[lhs], regs[rhs])
+			emit("mov %s, [%s]", regs[lhs], regs[rhs])
 		case IR_STORE8:
-			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs8[rhs])
+			emit("mov [%s], %s", regs[lhs], regs8[rhs])
 		case IR_STORE32:
-			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs32[rhs])
+			emit("mov [%s], %s", regs[lhs], regs32[rhs])
 		case IR_STORE64:
-			fmt.Printf("\tmov [%s], %s\n", regs[lhs], regs[rhs])
+			emit("mov [%s], %s", regs[lhs], regs[rhs])
 		case IR_STORE8_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg8[rhs])
+			emit("mov [rbp-%d], %s", lhs, argreg8[rhs])
 		case IR_STORE32_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg32[rhs])
+			emit("mov [rbp-%d], %s", lhs, argreg32[rhs])
 		case IR_STORE64_ARG:
-			fmt.Printf("\tmov [rbp-%d], %s\n", lhs, argreg64[rhs])
+			emit("mov [rbp-%d], %s", lhs, argreg64[rhs])
 		case IR_ADD:
-			fmt.Printf("\tadd %s, %s\n", regs[lhs], regs[rhs])
+			emit("add %s, %s", regs[lhs], regs[rhs])
 		case IR_ADD_IMM:
-			fmt.Printf("\tadd %s, %d\n", regs[lhs], rhs)
+			emit("add %s, %d", regs[lhs], rhs)
 		case IR_SUB:
-			fmt.Printf("\tsub %s, %s\n", regs[lhs], regs[rhs])
+			emit("sub %s, %s", regs[lhs], regs[rhs])
 		case IR_SUB_IMM:
-			fmt.Printf("\tsub %s, %d\n", regs[lhs], rhs)
+			emit("sub %s, %d", regs[lhs], rhs)
 		case IR_MUL:
-			fmt.Printf("\tmov rax, %s\n", regs[rhs])
-			fmt.Printf("\tmul %s\n", regs[lhs])
-			fmt.Printf("\tmov %s, rax\n", regs[lhs])
+			emit("mov rax, %s", regs[rhs])
+			emit("mul %s", regs[lhs])
+			emit("mov %s, rax", regs[lhs])
 		case IR_MUL_IMM:
-			fmt.Printf("\tmov rax, %d\n", rhs)
-			fmt.Printf("\tmul %s\n", regs[lhs])
-			fmt.Printf("\tmov %s, rax\n", regs[lhs])
+			emit("mov rax, %d", rhs)
+			emit("mul %s", regs[lhs])
+			emit("mov %s, rax", regs[lhs])
 		case IR_DIV:
-			fmt.Printf("\tmov rax, %s\n", regs[lhs])
-			fmt.Printf("\tcqo\n")
-			fmt.Printf("\tdiv %s\n", regs[rhs])
-			fmt.Printf("\tmov %s, rax\n", regs[lhs])
+			emit("mov rax, %s", regs[lhs])
+			emit("cqo")
+			emit("div %s", regs[rhs])
+			emit("mov %s, rax", regs[lhs])
 		case IR_MOD:
-			fmt.Printf("\tmov rax, %s\n", regs[lhs])
-			fmt.Printf("\tcqo\n")
-			fmt.Printf("\tdiv %s\n", regs[rhs])
-			fmt.Printf("\tmov %s, rdx\n", regs[lhs])
+			emit("mov rax, %s", regs[lhs])
+			emit("cqo")
+			emit("div %s", regs[rhs])
+			emit("mov %s, rdx", regs[lhs])
 		case IR_NOP:
 			break
 		default:
@@ -191,13 +195,13 @@ func gen(fn *Function) {
 	}
 
 	fmt.Printf("%s:\n", ret)
-	fmt.Printf("\tpop r15\n")
-	fmt.Printf("\tpop r14\n")
-	fmt.Printf("\tpop r13\n")
-	fmt.Printf("\tpop r12\n")
-	fmt.Printf("\tmov rsp, rbp\n")
-	fmt.Printf("\tpop rbp\n")
-	fmt.Printf("\tret\n")
+	emit("pop r15")
+	emit("pop r14")
+	emit("pop r13")
+	emit("pop r12")
+	emit("mov rsp, rbp")
+	emit("pop rbp")
+	emit("ret")
 }
 
 func gen_x86(globals, fns *Vector) {
@@ -211,7 +215,7 @@ func gen_x86(globals, fns *Vector) {
 			continue
 		}
 		fmt.Printf("%s:\n", v.name)
-		fmt.Printf("\t.ascii \"%s\"\n", escape(v.data, v.len))
+		emit(".ascii \"%s\"", escape(v.data, v.len))
 	}
 
 	fmt.Printf(".text\n")
