@@ -25,8 +25,11 @@ var (
 
 const (
 	IR_ADD = iota + 256
+	IR_ADD_IMM
 	IR_SUB
+	IR_SUB_IMM
 	IR_MUL
+	IR_MUL_IMM
 	IR_DIV
 	IR_IMM
 	IR_BPREL
@@ -157,13 +160,9 @@ func gen_lval(node *Node) int {
 	}
 
 	if node.op == ND_DOT {
-		r1 := gen_lval(node.expr)
-		r2 := nreg
-		nreg++
-		add(IR_IMM, r2, node.offset)
-		add(IR_ADD, r1, r2)
-		kill(r2)
-		return r1
+		r := gen_lval(node.expr)
+		add(IR_ADD_IMM, r, node.offset)
+		return r
 	}
 
 	if node.op == ND_LVAR {
@@ -306,11 +305,7 @@ func gen_expr(node *Node) int {
 			}
 
 			rhs := gen_expr(node.rhs)
-			r := nreg
-			nreg++
-			add(IR_IMM, r, node.lhs.ty.ptr_to.size)
-			add(IR_MUL, rhs, r)
-			kill(r)
+			add(IR_MUL_IMM, rhs, node.lhs.ty.ptr_to.size)
 
 			lhs := gen_expr(node.lhs)
 			add(insn, lhs, rhs)
@@ -397,29 +392,15 @@ func gen_pre_inc(node *Node, num int) int {
 	val := nreg
 	nreg++
 	add(load_insn(node), val, addr)
-	imm := nreg
-	nreg++
-	add(IR_IMM, imm, num)
-	add(IR_ADD, val, imm)
-	kill(imm)
+	add(IR_ADD_IMM, val, num)
 	add(store_insn(node), addr, val)
 	kill(addr)
 	return val
 }
 
 func gen_post_inc(node *Node, num int) int {
-	addr := gen_lval(node.expr)
-	val := nreg
-	nreg++
-	add(load_insn(node), val, addr)
-	imm := nreg
-	nreg++
-	add(IR_IMM, imm, num)
-	add(IR_ADD, val, imm)
-	add(store_insn(node), addr, val)
-	kill(addr)
-	add(IR_SUB, val, imm)
-	kill(imm)
+	val := gen_pre_inc(node, num)
+	add(IR_SUB_IMM, val, num)
 	return val
 }
 

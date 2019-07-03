@@ -12,8 +12,11 @@ type IRInfo struct {
 
 var irinfo = map[int]IRInfo{
 	IR_ADD:         {name: "ADD", ty: IR_TY_REG_REG},
+	IR_ADD_IMM:     {name: "ADD", ty: IR_TY_REG_IMM},
 	IR_SUB:         {name: "SUB", ty: IR_TY_REG_REG},
+	IR_SUB_IMM:     {name: "SUB", ty: IR_TY_REG_IMM},
 	IR_MUL:         {name: "MUL", ty: IR_TY_REG_REG},
+	IR_MUL_IMM:     {name: "MUL", ty: IR_TY_REG_IMM},
 	IR_DIV:         {name: "DIV", ty: IR_TY_REG_REG},
 	IR_IMM:         {name: "IMM", ty: IR_TY_REG_IMM},
 	IR_BPREL:       {name: "BPREL", ty: IR_TY_REG_IMM},

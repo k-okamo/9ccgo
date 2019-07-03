@@ -157,10 +157,18 @@ func gen(fn *Function) {
 			fmt.Printf("\tmov [rbp-%d], %s\n", ir.lhs, argreg64[ir.rhs])
 		case IR_ADD:
 			fmt.Printf("\tadd %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_ADD_IMM:
+			fmt.Printf("\tadd %s, %d\n", regs[ir.lhs], ir.rhs)
 		case IR_SUB:
 			fmt.Printf("\tsub %s, %s\n", regs[ir.lhs], regs[ir.rhs])
+		case IR_SUB_IMM:
+			fmt.Printf("\tsub %s, %d\n", regs[ir.lhs], ir.rhs)
 		case IR_MUL:
 			fmt.Printf("\tmov rax, %s\n", regs[ir.rhs])
+			fmt.Printf("\tmul %s\n", regs[ir.lhs])
+			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
+		case IR_MUL_IMM:
+			fmt.Printf("\tmov rax, %d\n", ir.rhs)
 			fmt.Printf("\tmul %s\n", regs[ir.lhs])
 			fmt.Printf("\tmov %s, rax\n", regs[ir.lhs])
 		case IR_DIV:
