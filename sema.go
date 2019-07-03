@@ -227,7 +227,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.rhs = walk(node.rhs, env, true)
 		node.ty = node.rhs.ty
 		return node
-	case '!':
+	case ND_NEG, '!':
 		node.expr = walk(node.expr, env, true)
 		node.ty = node.expr.ty
 		return node
@@ -249,7 +249,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 
 		node.ty = node.expr.ty.ptr_to
 		return node
-	case ND_RETURN:
+	case ND_RETURN, ND_EXPR_STMT:
 		node.expr = walk(node.expr, env, true)
 		return node
 	case ND_SIZEOF:
@@ -282,9 +282,6 @@ func walk(node *Node, env *Env, decay bool) *Node {
 			}
 			return node
 		}
-	case ND_EXPR_STMT:
-		node.expr = walk(node.expr, env, true)
-		return node
 	case ND_STMT_EXPR:
 		node.body = walk(node.body, env, true)
 		node.ty = &int_ty

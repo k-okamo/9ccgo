@@ -37,6 +37,7 @@ const (
 	ND_SHL                    // <<
 	ND_SHR                    // >>
 	ND_MOD                    // %
+	ND_NEG                    // -
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
 	ND_ALIGNOF                // "_Alignof"
@@ -337,11 +338,14 @@ func postfix() *Node {
 }
 
 func unary() *Node {
+	if consume('-') {
+		return new_expr(ND_NEG, unary())
+	}
 	if consume('*') {
-		return new_expr(ND_DEREF, mul())
+		return new_expr(ND_DEREF, unary())
 	}
 	if consume('&') {
-		return new_expr(ND_ADDR, mul())
+		return new_expr(ND_ADDR, unary())
 	}
 	if consume('!') {
 		return new_expr('!', unary())

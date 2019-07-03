@@ -106,6 +106,8 @@ func gen(fn *Function) {
 			fmt.Printf(".L%d:\n", ir.lhs)
 		case IR_LABEL_ADDR:
 			fmt.Printf("\tlea %s, %s\n", regs[ir.lhs], ir.name)
+		case IR_NEG:
+			fmt.Printf("\tneg %s\n", regs[ir.lhs])
 		case IR_EQ:
 			emit_cmp(ir, "sete")
 		case IR_NE:
