@@ -70,29 +70,6 @@ func ary_of(base *Type, length int) *Type {
 	return ty
 }
 
-func struct_of(members *Vector) *Type {
-	ty := new(Type)
-	ty.ty = STRUCT
-	ty.members = members
-
-	off := 0
-	for i := 0; i < members.len; i++ {
-		node := members.data[i].(*Node)
-		// assert(node.op == ND_VARDEF)
-
-		t := node.ty
-		off = roundup(off, t.align)
-		t.offset = off
-		off += t.size
-
-		if ty.align < node.ty.align {
-			ty.align = node.ty.align
-		}
-	}
-	ty.size = roundup(off, ty.align)
-	return ty
-}
-
 func size_of(ty *Type) int {
 	if ty.ty == CHAR {
 		return 1

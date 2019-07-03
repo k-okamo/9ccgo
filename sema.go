@@ -201,6 +201,9 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		}
 
 		ty := node.expr.ty
+		if ty.members == nil {
+			error("incomplete type")
+		}
 		for i := 0; i < ty.members.len; i++ {
 			m := ty.members.data[i].(*Node)
 			if m.name != node.name {

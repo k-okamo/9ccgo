@@ -129,6 +129,24 @@ func new_penv(next *PEnv) *PEnv {
 	return env
 }
 
+func find_typedef(name string) *Type {
+	for e := penv; e != nil; e = e.next {
+		if map_exists(e.typedefs, name) {
+			return map_get(e.typedefs, name).(*Type)
+		}
+	}
+	return nil
+}
+
+func find_tag(name string) *Type {
+	for e := penv; e != nil; e = e.next {
+		if map_exists(e.tags, name) {
+			return map_get(e.tags, name).(*Type)
+		}
+	}
+	return nil
+}
+
 func expect(ty int) {
 	t := tokens.data[pos].(*Token)
 	if t.ty != ty {
@@ -161,9 +179,30 @@ func consume(ty int) bool {
 func is_typename() bool {
 	t := tokens.data[pos].(*Token)
 	if t.ty == TK_IDENT {
-		return map_exists(penv.typedefs, t.name)
+		ret := find_typedef(t.name)
+		return ret != nil
 	}
 	return t.ty == TK_INT || t.ty == TK_CHAR || t.ty == TK_VOID || t.ty == TK_STRUCT
+}
+
+func add_members(ty *Type, members *Vector) {
+	off := 0
+	for i := 0; i < members.len; i++ {
+		node := members.data[i].(*Node)
+		//assert(node.op == ND_VARDEF)
+
+		t := node.ty
+		off = roundup(off, t.align)
+		t.offset = off
+		off += t.size
+
+		if ty.align < node.ty.align {
+			ty.align = node.ty.align
+		}
+	}
+
+	ty.members = members
+	ty.size = roundup(off, ty.align)
 }
 
 func read_type() *Type {
@@ -171,7 +210,7 @@ func read_type() *Type {
 	pos++
 
 	if t.ty == TK_IDENT {
-		ty := map_get(penv.typedefs, t.name).(*Type)
+		ty := find_typedef(t.name)
 		if ty == nil {
 			pos--
 		}
@@ -210,18 +249,24 @@ func read_type() *Type {
 			error("bad struct definition")
 		}
 
-		if tag != "" && members != nil {
-			map_put(penv.tags, tag, members)
-		} else if tag != "" && members == nil {
-			members = map_get(penv.tags, tag).(*Vector)
-			if members == nil {
-				error("incomplete type: %s", tag)
-			}
+		var ty *Type
+		if tag != "" && members == nil {
+			ty = find_tag(tag)
 		}
 
-		return struct_of(members)
-	}
+		if ty == nil {
+			ty = new(Type)
+			ty.ty = STRUCT
+		}
 
+		if members != nil {
+			add_members(ty, members)
+			if tag != "" {
+				map_put(penv.tags, tag, ty)
+			}
+		}
+		return ty
+	}
 	pos--
 	return nil
 }
@@ -687,7 +732,9 @@ func compound_stmt() *Node {
 }
 
 func toplevel() *Node {
+	is_typedef := consume(TK_TYPEDEF)
 	is_extern := consume(TK_EXTERN)
+
 	ty := ttype()
 	if ty == nil {
 		t := tokens.data[pos].(*Token)
@@ -713,23 +760,32 @@ func toplevel() *Node {
 		}
 
 		expect('{')
+		if is_typedef {
+			error("typedef %s has function definition", name)
+		}
 		node.body = compound_stmt()
 		return node
+	}
+
+	ty = read_array(ty)
+	expect(';')
+
+	if is_typedef {
+		map_put(penv.typedefs, name, ty)
+		return nil
 	}
 
 	// Global variable
 	node := new(Node)
 	node.op = ND_VARDEF
-	node.ty = read_array(ty)
+	node.ty = ty
 	node.name = name
+	node.is_extern = is_extern
 
-	if is_extern {
-		node.is_extern = true
-	} else {
+	if !is_extern {
 		node.data = ""
 		node.len = node.ty.size
 	}
-	expect(';')
 	return node
 }
 
@@ -739,8 +795,14 @@ func parse(tokens_ *Vector) *Vector {
 	penv = new_penv(penv)
 
 	v := new_vec()
-	for (tokens.data[pos].(*Token)).ty != TK_EOF {
-		vec_push(v, toplevel())
+	for {
+		t := tokens.data[pos].(*Token)
+		if t.ty == TK_EOF {
+			return v
+		}
+		node := toplevel()
+		if node != nil {
+			vec_push(v, node)
+		}
 	}
-	return v
 }
