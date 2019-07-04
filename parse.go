@@ -321,7 +321,7 @@ func primary() *Node {
 	}
 
 	if t.ty == TK_STR {
-		node.ty = ary_of(char_tyf(), len(t.str))
+		node.ty = ary_of(char_tyf(), t.len+1) // +1 is '\0'
 		node.op = ND_STR
 		node.data = t.str
 		node.len = t.len
