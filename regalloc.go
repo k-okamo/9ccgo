@@ -47,7 +47,7 @@ func visit(irv *Vector) {
 		switch irinfo[ir.op].ty {
 		case IR_TY_REG, IR_TY_REG_IMM, IR_TY_REG_LABEL, IR_TY_LABEL_ADDR:
 			ir.lhs = alloc(ir.lhs)
-		case IR_TY_REG_REG:
+		case IR_TY_MEM, IR_TY_REG_REG:
 			ir.lhs = alloc(ir.lhs)
 			ir.rhs = alloc(ir.rhs)
 		case IR_TY_CALL:

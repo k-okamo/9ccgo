@@ -65,6 +65,17 @@ func emit_cmp(ir *IR, insn string) {
 	emit("movzb %s, %s", regs[ir.lhs], regs8[ir.lhs])
 }
 
+func reg(r, size int) string {
+	if size == 1 {
+		return regs8[r]
+	}
+	if size == 4 {
+		return regs32[r]
+	}
+	// assert(size == 8)
+	return regs[r]
+}
+
 func gen(fn *Function) {
 
 	ret := format(".Lend%d", glabel)
@@ -142,13 +153,11 @@ func gen(fn *Function) {
 		case IR_UNLESS:
 			emit("cmp %s, 0", regs[lhs])
 			emit("je .L%d", rhs)
-		case IR_LOAD8:
-			emit("mov %s, [%s]", regs8[lhs], regs[rhs])
-			emit("movzb %s, %s", regs[lhs], regs8[lhs])
-		case IR_LOAD32:
-			emit("mov %s, [%s]", regs32[lhs], regs[rhs])
-		case IR_LOAD64:
-			emit("mov %s, [%s]", regs[lhs], regs[rhs])
+		case IR_LOAD:
+			emit("mov %s, [%s]", reg(lhs, ir.size), regs[rhs])
+			if ir.size == 1 {
+				emit("movzb %s, %s", regs[lhs], regs8[lhs])
+			}
 		case IR_STORE8:
 			emit("mov [%s], %s", regs[lhs], regs8[rhs])
 		case IR_STORE32:

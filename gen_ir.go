@@ -53,9 +53,7 @@ const (
 	IR_JMP
 	IR_IF
 	IR_UNLESS
-	IR_LOAD8
-	IR_LOAD32
-	IR_LOAD64
+	IR_LOAD
 	IR_STORE8
 	IR_STORE32
 	IR_STORE64
@@ -70,6 +68,7 @@ const (
 	IR_TY_NOARG = iota + 256
 	IR_TY_REG
 	IR_TY_IMM
+	IR_TY_MEM
 	IR_TY_JMP
 	IR_TY_LABEL
 	IR_TY_LABEL_ADDR
@@ -84,6 +83,9 @@ type IR struct {
 	op  int
 	lhs int
 	rhs int
+
+	// Load/Store size in bytes
+	size int
 
 	// Function call
 	name  string
@@ -130,8 +132,9 @@ func choose_insn(node *Node, op8, op32, op64 int) int {
 	return op64
 }
 
-func load_insn(node *Node) int {
-	return choose_insn(node, IR_LOAD8, IR_LOAD32, IR_LOAD64)
+func load(node *Node, dst, src int) {
+	ir := add(IR_LOAD, dst, src)
+	ir.size = node.ty.size
 }
 
 func store_insn(node *Node) int {
@@ -241,7 +244,7 @@ func gen_expr(node *Node) int {
 	case ND_GVAR, ND_LVAR, ND_DOT:
 		{
 			r := gen_lval(node)
-			add(load_insn(node), r, r)
+			load(node, r, r)
 			return r
 		}
 
@@ -272,7 +275,7 @@ func gen_expr(node *Node) int {
 	case ND_DEREF:
 		{
 			r := gen_expr(node.expr)
-			add(load_insn(node), r, r)
+			load(node, r, r)
 			return r
 		}
 	case ND_STMT_EXPR:
@@ -403,7 +406,7 @@ func gen_pre_inc(node *Node, num int) int {
 	addr := gen_lval(node.expr)
 	val := nreg
 	nreg++
-	add(load_insn(node), val, addr)
+	load(node, val, addr)
 	add(IR_ADD_IMM, val, num*get_inc_scale(node))
 	add(store_insn(node), addr, val)
 	kill(addr)
@@ -601,10 +604,8 @@ func print_irs(fns *Vector) {
 				op = "IR_JMP      "
 			case IR_UNLESS:
 				op = "IR_UNLESS   "
-			case IR_LOAD32:
-				op = "IR_LOAD32   "
-			case IR_LOAD64:
-				op = "IR_LOAD64   "
+			case IR_LOAD:
+				op = "IR_LOAD     "
 			case IR_STORE32:
 				op = "IR_STORE32  "
 			case IR_STORE64:

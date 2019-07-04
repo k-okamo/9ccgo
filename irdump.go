@@ -37,9 +37,7 @@ var irinfo = map[int]IRInfo{
 	IR_UNLESS:      {name: "UNLESS", ty: IR_TY_REG_LABEL},
 	IR_CALL:        {name: "CALL", ty: IR_TY_CALL},
 	IR_RETURN:      {name: "RET", ty: IR_TY_REG},
-	IR_LOAD8:       {name: "LOAD8", ty: IR_TY_REG_REG},
-	IR_LOAD32:      {name: "LOAD32", ty: IR_TY_REG_REG},
-	IR_LOAD64:      {name: "LOAD64", ty: IR_TY_REG_REG},
+	IR_LOAD:        {name: "LOAD8", ty: IR_TY_MEM},
 	IR_MOD:         {name: "MOD", ty: IR_TY_REG_REG},
 	IR_NEG:         {name: "NEG", ty: IR_TY_REG},
 	IR_STORE8:      {name: "STORE8", ty: IR_TY_REG_REG},
@@ -68,6 +66,8 @@ func tostr(ir *IR) string {
 		return format("\t%s r%d", info.name, ir.lhs)
 	case IR_TY_REG_REG:
 		return format("\t%s r%d, r%d", info.name, ir.lhs, ir.rhs)
+	case IR_TY_MEM:
+		return format("\t%s%d r%d, r%d", info.name, ir.size, ir.lhs, ir.rhs)
 	case IR_TY_REG_IMM:
 		return format("\t%s r%d, %d", info.name, ir.lhs, ir.rhs)
 	case IR_TY_IMM_IMM:
