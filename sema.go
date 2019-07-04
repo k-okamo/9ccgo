@@ -110,6 +110,8 @@ func walk(node *Node, decay bool) *Node {
 		return node
 	case ND_STR:
 		{
+			// A string literal is converted to a reference to an anonymous
+			// global variable of type char array.
 			v := new_global(node.ty, format(".L.str%d", str_label), node.data, node.len)
 			str_label++
 			vec_push(globals, v)
@@ -165,10 +167,12 @@ func walk(node *Node, decay bool) *Node {
 		}
 		return node
 	case ND_FOR:
+		env = new_env(env)
 		node.init = walk(node.init, true)
 		node.cond = walk(node.cond, true)
 		node.inc = walk(node.inc, true)
 		node.body = walk(node.body, true)
+		env = env.next
 		return node
 	case ND_DO_WHILE:
 		node.cond = walk(node.cond, true)
