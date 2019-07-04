@@ -74,7 +74,7 @@ func read_file(filename string) string {
 		if err != nil {
 			break
 		}
-		sb_lappend(sb, string(buf[:n]), n)
+		sb_append_n(sb, string(buf[:n]), n)
 	}
 	return sb_get(sb)
 }
