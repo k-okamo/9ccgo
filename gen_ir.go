@@ -461,12 +461,16 @@ func gen_stmt(node *Node) {
 			nlabel++
 
 			gen_stmt(node.init)
-			add(IR_LABEL, x, -1)
-			r := gen_expr(node.cond)
-			add(IR_UNLESS, r, y)
-			kill(r)
+			label(x)
+			if node.cond != nil {
+				r := gen_expr(node.cond)
+				add(IR_UNLESS, r, y)
+				kill(r)
+			}
 			gen_stmt(node.body)
-			gen_stmt(node.inc)
+			if node.inc != nil {
+				gen_stmt(node.inc)
+			}
 			add(IR_JMP, x, -1)
 			label(y)
 			label(break_label)
