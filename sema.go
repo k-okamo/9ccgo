@@ -21,6 +21,7 @@ var (
 	globals   *Vector
 	stacksize int
 	str_label int
+	env       *Env
 )
 
 type Env struct {
@@ -59,9 +60,9 @@ func new_global(ty *Type, name, data string, len int) *Var {
 	return v
 }
 
-func find(env *Env, name string) *Var {
-	for ; env != nil; env = env.next {
-		v := map_get(env.vars, name)
+func find_var(name string) *Var {
+	for e := env; e != nil; e = e.next {
+		v := map_get(e.vars, name)
 		if v != nil {
 			return v.(*Var)
 		}
@@ -104,7 +105,7 @@ func new_int(val int) *Node {
 	return node
 }
 
-func walk(node *Node, env *Env, decay bool) *Node {
+func walk(node *Node, decay bool) *Node {
 	switch node.op {
 	case ND_NUM:
 		return node
@@ -122,7 +123,7 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		}
 	case ND_IDENT:
 		{
-			v := find(env, node.name)
+			v := find_var(node.name)
 			if v == nil {
 				error("undetined variable: %s", node.name)
 			}
@@ -153,30 +154,30 @@ func walk(node *Node, env *Env, decay bool) *Node {
 			map_put(env.vars, node.name, v)
 
 			if node.init != nil {
-				node.init = walk(node.init, env, true)
+				node.init = walk(node.init, true)
 			}
 			return node
 		}
 	case ND_IF:
-		node.cond = walk(node.cond, env, true)
-		node.then = walk(node.then, env, true)
+		node.cond = walk(node.cond, true)
+		node.then = walk(node.then, true)
 		if node.els != nil {
-			node.els = walk(node.els, env, true)
+			node.els = walk(node.els, true)
 		}
 		return node
 	case ND_FOR:
-		node.init = walk(node.init, env, true)
-		node.cond = walk(node.cond, env, true)
-		node.inc = walk(node.inc, env, true)
-		node.body = walk(node.body, env, true)
+		node.init = walk(node.init, true)
+		node.cond = walk(node.cond, true)
+		node.inc = walk(node.inc, true)
+		node.body = walk(node.body, true)
 		return node
 	case ND_DO_WHILE:
-		node.cond = walk(node.cond, env, true)
-		node.body = walk(node.body, env, true)
+		node.cond = walk(node.cond, true)
+		node.body = walk(node.body, true)
 		return node
 	case '+', '-':
-		node.lhs = walk(node.lhs, env, true)
-		node.rhs = walk(node.rhs, env, true)
+		node.lhs = walk(node.lhs, true)
+		node.rhs = walk(node.rhs, true)
 
 		if node.rhs.ty.ty == PTR {
 			swap(&node.lhs, &node.rhs)
@@ -188,14 +189,14 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.ty = node.lhs.ty
 		return node
 	case '=':
-		node.lhs = walk(node.lhs, env, false)
+		node.lhs = walk(node.lhs, false)
 		check_lval(node.lhs)
-		node.rhs = walk(node.rhs, env, true)
+		node.rhs = walk(node.rhs, true)
 		node.ty = node.lhs.ty
 		return node
 
 	case ND_DOT:
-		node.expr = walk(node.expr, env, true)
+		node.expr = walk(node.expr, true)
 		if node.expr.ty.ty != STRUCT {
 			error("struct expected before '.'")
 		}
@@ -215,32 +216,32 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		}
 		error("member missing: %s", node.name)
 	case '?':
-		node.cond = walk(node.cond, env, true)
-		node.then = walk(node.then, env, true)
-		node.els = walk(node.els, env, true)
+		node.cond = walk(node.cond, true)
+		node.then = walk(node.then, true)
+		node.els = walk(node.els, true)
 		node.ty = node.then.ty
 		return node
 	case '*', '/', '%', '<', '|', '^', '&', ND_EQ, ND_NE, ND_LE, ND_SHL, ND_SHR, ND_LOGAND, ND_LOGOR:
-		node.lhs = walk(node.lhs, env, true)
-		node.rhs = walk(node.rhs, env, true)
+		node.lhs = walk(node.lhs, true)
+		node.rhs = walk(node.rhs, true)
 		node.ty = node.lhs.ty
 		return node
 	case ',':
-		node.lhs = walk(node.lhs, env, true)
-		node.rhs = walk(node.rhs, env, true)
+		node.lhs = walk(node.lhs, true)
+		node.rhs = walk(node.rhs, true)
 		node.ty = node.rhs.ty
 		return node
 	case ND_PRE_INC, ND_PRE_DEC, ND_POST_INC, ND_POST_DEC, ND_NEG, '!':
-		node.expr = walk(node.expr, env, true)
+		node.expr = walk(node.expr, true)
 		node.ty = node.expr.ty
 		return node
 	case ND_ADDR:
-		node.expr = walk(node.expr, env, true)
+		node.expr = walk(node.expr, true)
 		check_lval(node.expr)
 		node.ty = ptr_to(node.expr.ty)
 		return node
 	case ND_DEREF:
-		node.expr = walk(node.expr, env, true)
+		node.expr = walk(node.expr, true)
 
 		if node.expr.ty.ty != PTR {
 			error("operand must be a pointer")
@@ -253,40 +254,41 @@ func walk(node *Node, env *Env, decay bool) *Node {
 		node.ty = node.expr.ty.ptr_to
 		return node
 	case ND_RETURN, ND_EXPR_STMT:
-		node.expr = walk(node.expr, env, true)
+		node.expr = walk(node.expr, true)
 		return node
 	case ND_SIZEOF:
 		{
-			expr := walk(node.expr, env, false)
+			expr := walk(node.expr, false)
 			return new_int(expr.ty.size)
 		}
 	case ND_ALIGNOF:
 		{
-			expr := walk(node.expr, env, false)
+			expr := walk(node.expr, false)
 			return new_int(expr.ty.align)
 		}
 	case ND_CALL:
 		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(node.args.data[i].(*Node), env, true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), true)
 		}
 		node.ty = &int_ty
 		return node
 	case ND_FUNC:
 		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(node.args.data[i].(*Node), env, true)
+			node.args.data[i] = walk(node.args.data[i].(*Node), true)
 		}
-		node.body = walk(node.body, env, true)
+		node.body = walk(node.body, true)
 		return node
 	case ND_COMP_STMT:
 		{
-			newenv := new_env(env)
+			env = new_env(env)
 			for i := 0; i < node.stmts.len; i++ {
-				node.stmts.data[i] = walk(node.stmts.data[i].(*Node), newenv, true)
+				node.stmts.data[i] = walk(node.stmts.data[i].(*Node), true)
 			}
+			env = env.next
 			return node
 		}
 	case ND_STMT_EXPR:
-		node.body = walk(node.body, env, true)
+		node.body = walk(node.body, true)
 		node.ty = &int_ty
 		return node
 	case ND_NULL:
@@ -298,8 +300,8 @@ func walk(node *Node, env *Env, decay bool) *Node {
 }
 
 func sema(nodes *Vector) *Vector {
+	env = new_env(nil)
 	globals = new_vec()
-	topenv := new_env(nil)
 
 	for i := 0; i < nodes.len; i++ {
 		node := nodes.data[i].(*Node)
@@ -308,14 +310,14 @@ func sema(nodes *Vector) *Vector {
 			v := new_global(node.ty, node.name, node.data, node.len)
 			v.is_extern = node.is_extern
 			vec_push(globals, v)
-			map_put(topenv.vars, node.name, v)
+			map_put(env.vars, node.name, v)
 			continue
 		}
 
 		//assert(node.op == ND_FUNC)
 
 		stacksize = 0
-		walk(node, topenv, true)
+		walk(node, true)
 		node.stacksize = stacksize
 	}
 
