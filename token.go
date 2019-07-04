@@ -15,6 +15,7 @@ var (
 	keywords *Map
 	symbols  = []Keyword{
 		{name: "_Alignof", ty: TK_ALIGNOF},
+		{name: "break", ty: TK_BREAK},
 		{name: "char", ty: TK_CHAR},
 		{name: "do", ty: TK_DO},
 		{name: "else", ty: TK_ELSE},
@@ -69,6 +70,7 @@ const (
 	TK_FOR                  // "for"
 	TK_DO                   // "do"
 	TK_WHILE                // "while"
+	TK_BREAK                // "break"
 	TK_EQ                   // ==
 	TK_NE                   // !=
 	TK_LE                   // <=

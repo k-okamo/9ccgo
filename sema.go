@@ -106,7 +106,7 @@ func new_int(val int) *Node {
 
 func walk(node *Node, decay bool) *Node {
 	switch node.op {
-	case ND_NUM, ND_NULL:
+	case ND_NUM, ND_NULL, ND_BREAK:
 		return node
 	case ND_STR:
 		{

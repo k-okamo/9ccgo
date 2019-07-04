@@ -21,6 +21,7 @@ var (
 	nlabel       = 1
 	return_label int
 	return_reg   int
+	break_label  int
 )
 
 const (
@@ -455,6 +456,9 @@ func gen_stmt(node *Node) {
 			nlabel++
 			y := nlabel
 			nlabel++
+			orig := break_label
+			break_label = nlabel
+			nlabel++
 
 			gen_stmt(node.init)
 			add(IR_LABEL, x, -1)
@@ -465,19 +469,31 @@ func gen_stmt(node *Node) {
 			gen_stmt(node.inc)
 			add(IR_JMP, x, -1)
 			label(y)
+			label(break_label)
+			break_label = orig
 			return
 		}
 	case ND_DO_WHILE:
 		{
 			x := nlabel
 			nlabel++
+			orig := break_label
+			break_label = nlabel
+			nlabel++
 			label(x)
 			gen_stmt(node.body)
 			r := gen_expr(node.cond)
 			add(IR_IF, r, x)
 			kill(r)
+			label(break_label)
+			break_label = orig
 			return
 		}
+	case ND_BREAK:
+		if break_label == 0 {
+			error("stray 'break' statement")
+		}
+		add(IR_JMP, break_label, -1)
 	case ND_RETURN:
 		{
 			r := gen_expr(node.expr)

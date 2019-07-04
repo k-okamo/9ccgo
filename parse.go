@@ -9,10 +9,11 @@ package main
 // Semantic errors are detected in a later pass.
 
 var (
-	pos       = 0
-	int_ty    = Type{ty: INT, size: 4, align: 4}
-	null_stmt = Node{op: ND_NULL}
-	penv      *PEnv
+	pos        = 0
+	penv       *PEnv
+	int_ty     = Type{ty: INT, size: 4, align: 4}
+	null_stmt  = Node{op: ND_NULL}
+	break_stmt = Node{op: ND_BREAK}
 )
 
 const (
@@ -25,7 +26,8 @@ const (
 	ND_GVAR                   // Global variable reference
 	ND_IF                     // "if"
 	ND_FOR                    // "for"
-	ND_DO_WHILE               // do ~ while
+	ND_DO_WHILE               // do ... while
+	ND_BREAK                  // break
 	ND_ADDR                   // address-of operator ("&")
 	ND_DEREF                  // pointer dereference ("*")
 	ND_DOT                    // Struct member access
@@ -685,6 +687,8 @@ func stmt() *Node {
 		expect(')')
 		expect(';')
 		return node
+	case TK_BREAK:
+		return &break_stmt
 	case TK_RETURN:
 		node.op = ND_RETURN
 		node.expr = expr()
