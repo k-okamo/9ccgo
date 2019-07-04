@@ -115,6 +115,10 @@ func label(x int) {
 	add(IR_LABEL, x, -1)
 }
 
+func jmp(x int) {
+	add(IR_JMP, x, -1)
+}
+
 func choose_insn(node *Node, op8, op32, op64 int) int {
 	if node.ty.size == 1 {
 		return op8
@@ -224,7 +228,7 @@ func gen_expr(node *Node) int {
 			r1 := gen_expr(node.lhs)
 			add(IR_UNLESS, r1, x)
 			add(IR_IMM, r1, 1)
-			add(IR_JMP, y, -1)
+			jmp(y)
 			label(x)
 			r2 := gen_expr(node.rhs)
 			add(IR_MOV, r1, r2)
@@ -362,7 +366,7 @@ func gen_expr(node *Node) int {
 			r2 := gen_expr(node.then)
 			add(IR_MOV, r, r2)
 			kill(r2)
-			add(IR_JMP, y, -1)
+			jmp(y)
 
 			label(x)
 			r3 := gen_expr(node.els)
@@ -442,7 +446,7 @@ func gen_stmt(node *Node) {
 				add(IR_UNLESS, r, x)
 				kill(r)
 				gen_stmt(node.then)
-				add(IR_JMP, y, -1)
+				jmp(y)
 				label(x)
 				gen_stmt(node.els)
 				label(y)
@@ -478,7 +482,7 @@ func gen_stmt(node *Node) {
 			if node.inc != nil {
 				gen_stmt(node.inc)
 			}
-			add(IR_JMP, x, -1)
+			jmp(x)
 			label(y)
 			label(break_label)
 			break_label = orig
@@ -504,7 +508,7 @@ func gen_stmt(node *Node) {
 		if break_label == 0 {
 			error("stray 'break' statement")
 		}
-		add(IR_JMP, break_label, -1)
+		jmp(break_label)
 	case ND_RETURN:
 		{
 			r := gen_expr(node.expr)
@@ -513,7 +517,7 @@ func gen_stmt(node *Node) {
 			if return_label != 0 {
 				add(IR_MOV, return_reg, r)
 				kill(r)
-				add(IR_JMP, return_label, -1)
+				jmp(return_label)
 				return
 			}
 
