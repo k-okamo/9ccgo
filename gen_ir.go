@@ -55,9 +55,7 @@ const (
 	IR_UNLESS
 	IR_LOAD
 	IR_STORE
-	IR_STORE8_ARG
-	IR_STORE32_ARG
-	IR_STORE64_ARG
+	IR_STORE_ARG
 	IR_KILL
 	IR_NOP
 )
@@ -72,7 +70,7 @@ const (
 	IR_TY_LABEL_ADDR
 	IR_TY_REG_REG
 	IR_TY_REG_IMM
-	IR_TY_IMM_IMM
+	IR_TY_STORE_ARG
 	IR_TY_REG_LABEL
 	IR_TY_CALL
 )
@@ -119,17 +117,6 @@ func jmp(x int) {
 	add(IR_JMP, x, -1)
 }
 
-func choose_insn(node *Node, op8, op32, op64 int) int {
-	if node.ty.size == 1 {
-		return op8
-	}
-	if node.ty.size == 4 {
-		return op32
-	}
-	// assert(node.ty.size == 8)
-	return op64
-}
-
 func load(node *Node, dst, src int) {
 	ir := add(IR_LOAD, dst, src)
 	ir.size = node.ty.size
@@ -140,8 +127,9 @@ func store(node *Node, dst, src int) {
 	ir.size = node.ty.size
 }
 
-func store_arg_insn(node *Node) int {
-	return choose_insn(node, IR_STORE8_ARG, IR_STORE32_ARG, IR_STORE64_ARG)
+func store_arg(node *Node, bpoff, argreg int) {
+	ir := add(IR_STORE_ARG, bpoff, argreg)
+	ir.size = node.ty.size
 }
 
 // In C, all expressions that can be written on the left-hand side of
@@ -560,7 +548,7 @@ func gen_ir(nodes *Vector) *Vector {
 
 		for i := 0; i < node.args.len; i++ {
 			arg := node.args.data[i].(*Node)
-			add(store_arg_insn(arg), arg.offset, i)
+			store_arg(arg, arg.offset, i)
 		}
 
 		gen_stmt(node.body)
@@ -607,10 +595,8 @@ func print_irs(fns *Vector) {
 				op = "IR_LOAD     "
 			case IR_STORE:
 				op = "IR_STORE    "
-			case IR_STORE32_ARG:
-				op = "IR_STORE32_ARG  "
-			case IR_STORE64_ARG:
-				op = "IR_STORE64_ARG  "
+			case IR_STORE_ARG:
+				op = "IR_STORE_ARG"
 			case IR_KILL:
 				op = "IR_KILL     "
 			case IR_NOP:

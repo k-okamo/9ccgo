@@ -49,6 +49,17 @@ func escape(s string, length int) string {
 	return sb_get(sb)
 }
 
+func argreg(r, size int) string {
+	if size == 1 {
+		return argreg8[r]
+	}
+	if size == 4 {
+		return argreg32[r]
+	}
+	// assert(size == 8)
+	return argreg64[r]
+}
+
 func gen_label() string {
 	buf := fmt.Sprintf(".L%d", n)
 	n++
@@ -160,12 +171,8 @@ func gen(fn *Function) {
 			}
 		case IR_STORE:
 			emit("mov [%s], %s", regs[lhs], reg(rhs, ir.size))
-		case IR_STORE8_ARG:
-			emit("mov [rbp-%d], %s", lhs, argreg8[rhs])
-		case IR_STORE32_ARG:
-			emit("mov [rbp-%d], %s", lhs, argreg32[rhs])
-		case IR_STORE64_ARG:
-			emit("mov [rbp-%d], %s", lhs, argreg64[rhs])
+		case IR_STORE_ARG:
+			emit("mov [rbp-%d], %s", lhs, argreg(rhs, ir.size))
 		case IR_ADD:
 			emit("add %s, %s", regs[lhs], regs[rhs])
 		case IR_ADD_IMM:
