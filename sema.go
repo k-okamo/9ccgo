@@ -90,10 +90,9 @@ func maybe_decay(base *Node, decay bool) *Node {
 
 func check_lval(node *Node) {
 	op := node.op
-	if op == ND_LVAR || op == ND_GVAR || op == ND_DEREF || op == ND_DOT {
-		return
+	if op != ND_LVAR && op != ND_GVAR && op != ND_DEREF && op != ND_DOT {
+		error("not an lvalue: %d (%s)", op, node.name)
 	}
-	error("not an lvalue: %d (%s)", op, node.name)
 }
 
 func new_int(val int) *Node {
@@ -107,7 +106,7 @@ func new_int(val int) *Node {
 
 func walk(node *Node, decay bool) *Node {
 	switch node.op {
-	case ND_NUM:
+	case ND_NUM, ND_NULL:
 		return node
 	case ND_STR:
 		{
@@ -125,7 +124,7 @@ func walk(node *Node, decay bool) *Node {
 		{
 			v := find_var(node.name)
 			if v == nil {
-				error("undetined variable: %s", node.name)
+				error("undefined variable: %s", node.name)
 			}
 
 			if v.is_local {
@@ -290,8 +289,6 @@ func walk(node *Node, decay bool) *Node {
 	case ND_STMT_EXPR:
 		node.body = walk(node.body, true)
 		node.ty = &int_ty
-		return node
-	case ND_NULL:
 		return node
 	default:
 		//assert(0 && "unknouwn node type")
