@@ -51,6 +51,10 @@ func sb_get(sb *StringBuilder) string {
 	return sb.data
 }
 
+func roundup(x, align int) int {
+	return (x + align - 1) & ^(align - 1)
+}
+
 func ptr_to(base *Type) *Type {
 	ty := new(Type)
 	ty.ty = PTR
@@ -96,10 +100,6 @@ func align_of(ty *Type) int {
 	}
 	// assert(ty.ty == ARY)
 	return align_of(ty.ary_of)
-}
-
-func roundup(x, align int) int {
-	return (x + align - 1) & ^(align - 1)
 }
 
 func copy_node(src, dst *Node) {
