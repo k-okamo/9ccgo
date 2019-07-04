@@ -13,11 +13,12 @@ package main
 // registers are exhausted and need to be spilled to memory.
 
 var (
-	regs    = []string{"r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
-	regs8   = []string{"r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
-	regs32  = []string{"r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
-	used    [8]bool
-	reg_map [8192]int
+	regs       = []string{"r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
+	regs8      = []string{"r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
+	regs32     = []string{"r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
+	used       [8]bool
+	reg_map    [8192]int
+	reg_map_sz = len(reg_map)
 )
 
 func alloc(ir_reg int) int {
@@ -27,7 +28,7 @@ func alloc(ir_reg int) int {
 		return r
 	}
 
-	for i := 0; i < len(regs); i++ {
+	for i := 0; i < reg_map_sz; i++ {
 		if used[i] == true {
 			continue
 		}
@@ -66,7 +67,7 @@ func visit(irv *Vector) {
 
 func alloc_regs(fns *Vector) {
 
-	for i := 0; i < len(reg_map); i++ {
+	for i := 0; i < reg_map_sz; i++ {
 		reg_map[i] = -1
 	}
 
