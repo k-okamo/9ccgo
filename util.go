@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strconv"
 	"unicode"
+	"unsafe"
 )
 
 type StringBuilder struct {
@@ -239,6 +240,29 @@ func error(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, a...)
 	fmt.Fprintf(os.Stderr, "\n")
 	os.Exit(1)
+}
+
+func popcount(x uint) int {
+	ret := 0
+	for n := uint(0); n < uint(unsafe.Sizeof(x))*8; n++ {
+		if x&(1<<n) != 0 {
+			ret++
+		}
+	}
+	return ret
+}
+
+func ctz(x uint) int {
+	ret := 0
+	a := uint(1)
+	for n := uint(0); n < uint(unsafe.Sizeof(x))*8; n++ {
+		if x&a != 0 {
+			return ret
+		}
+		a = a * 2
+		ret++
+	}
+	return ret
 }
 
 func strtol(s string, b int) (int, string) {

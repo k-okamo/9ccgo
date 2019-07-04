@@ -86,3 +86,43 @@ func Test_isgraph(t *testing.T) {
 		}
 	}
 }
+
+func Test_popcount(t *testing.T) {
+	cases := []struct {
+		x   uint
+		ret int
+	}{
+		{1, 1},
+		{2, 1},
+		{8, 1},
+		{32, 1},
+		{128, 1},
+		{3, 2},
+	}
+
+	for _, c := range cases {
+		ret := popcount(c.x)
+		if ret != c.ret {
+			t.Errorf("expected: %d, got: %d\n", c.ret, ret)
+		}
+	}
+}
+
+func Test_ctz(t *testing.T) {
+	cases := []struct {
+		x   uint
+		ret int
+	}{
+		{1, 0},
+		{2, 1},
+		{3, 0},
+		{8, 3},
+	}
+
+	for _, c := range cases {
+		ret := ctz(c.x)
+		if ret != c.ret {
+			t.Errorf("expected: %d, got: %d\n", c.ret, ret)
+		}
+	}
+}

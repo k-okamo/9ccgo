@@ -174,6 +174,10 @@ func gen(fn *Function) {
 			emit("mul %s", regs[lhs])
 			emit("mov %s, rax", regs[lhs])
 		case IR_MUL_IMM:
+			if rhs < 256 && popcount(uint(rhs)) == 1 {
+				emit("shl %s, %d", regs[lhs], ctz(uint(rhs)))
+				break
+			}
 			emit("mov rax, %d", rhs)
 			emit("mul %s", regs[lhs])
 			emit("mov %s, rax", regs[lhs])
