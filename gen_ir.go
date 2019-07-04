@@ -54,9 +54,7 @@ const (
 	IR_IF
 	IR_UNLESS
 	IR_LOAD
-	IR_STORE8
-	IR_STORE32
-	IR_STORE64
+	IR_STORE
 	IR_STORE8_ARG
 	IR_STORE32_ARG
 	IR_STORE64_ARG
@@ -137,8 +135,9 @@ func load(node *Node, dst, src int) {
 	ir.size = node.ty.size
 }
 
-func store_insn(node *Node) int {
-	return choose_insn(node, IR_STORE8, IR_STORE32, IR_STORE64)
+func store(node *Node, dst, src int) {
+	ir := add(IR_STORE, dst, src)
+	ir.size = node.ty.size
 }
 
 func store_arg_insn(node *Node) int {
@@ -298,7 +297,7 @@ func gen_expr(node *Node) int {
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
-			add(store_insn(node), lhs, rhs)
+			store(node, lhs, rhs)
 			kill(rhs)
 			return lhs
 		}
@@ -408,7 +407,7 @@ func gen_pre_inc(node *Node, num int) int {
 	nreg++
 	load(node, val, addr)
 	add(IR_ADD_IMM, val, num*get_inc_scale(node))
-	add(store_insn(node), addr, val)
+	store(node, addr, val)
 	kill(addr)
 	return val
 }
@@ -433,7 +432,7 @@ func gen_stmt(node *Node) {
 			lhs := nreg
 			nreg++
 			add(IR_BPREL, lhs, node.offset)
-			add(store_insn(node), lhs, rhs)
+			store(node, lhs, rhs)
 			kill(lhs)
 			kill(rhs)
 			return
@@ -606,10 +605,8 @@ func print_irs(fns *Vector) {
 				op = "IR_UNLESS   "
 			case IR_LOAD:
 				op = "IR_LOAD     "
-			case IR_STORE32:
-				op = "IR_STORE32  "
-			case IR_STORE64:
-				op = "IR_STORE64  "
+			case IR_STORE:
+				op = "IR_STORE    "
 			case IR_STORE32_ARG:
 				op = "IR_STORE32_ARG  "
 			case IR_STORE64_ARG:

@@ -158,12 +158,8 @@ func gen(fn *Function) {
 			if ir.size == 1 {
 				emit("movzb %s, %s", regs[lhs], regs8[lhs])
 			}
-		case IR_STORE8:
-			emit("mov [%s], %s", regs[lhs], regs8[rhs])
-		case IR_STORE32:
-			emit("mov [%s], %s", regs[lhs], regs32[rhs])
-		case IR_STORE64:
-			emit("mov [%s], %s", regs[lhs], regs[rhs])
+		case IR_STORE:
+			emit("mov [%s], %s", regs[lhs], reg(rhs, ir.size))
 		case IR_STORE8_ARG:
 			emit("mov [rbp-%d], %s", lhs, argreg8[rhs])
 		case IR_STORE32_ARG:
