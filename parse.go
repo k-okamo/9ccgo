@@ -633,18 +633,15 @@ func expr_stmt() *Node {
 func stmt() *Node {
 	node := new(Node)
 	t := tokens.data[pos].(*Token)
+	pos++
 
 	switch t.ty {
 	case TK_TYPEDEF:
-		pos++
 		node := decl()
 		// assert(node.name)
 		map_put(penv.typedefs, node.name, node.ty)
 		return &null_stmt
-	case TK_INT, TK_CHAR, TK_STRUCT:
-		return decl()
 	case TK_IF:
-		pos++
 		node.op = ND_IF
 		expect('(')
 		node.cond = expr()
@@ -657,7 +654,6 @@ func stmt() *Node {
 		}
 		return node
 	case TK_FOR:
-		pos++
 		node.op = ND_FOR
 		expect('(')
 		if is_typename() {
@@ -672,7 +668,6 @@ func stmt() *Node {
 		node.body = stmt()
 		return node
 	case TK_WHILE:
-		pos++
 		node.op = ND_FOR
 		node.init = &null_stmt
 		node.inc = &null_stmt
@@ -682,7 +677,6 @@ func stmt() *Node {
 		node.body = stmt()
 		return node
 	case TK_DO:
-		pos++
 		node.op = ND_DO_WHILE
 		node.body = stmt()
 		expect(TK_WHILE)
@@ -692,13 +686,11 @@ func stmt() *Node {
 		expect(';')
 		return node
 	case TK_RETURN:
-		pos++
 		node.op = ND_RETURN
 		node.expr = expr()
 		expect(';')
 		return node
 	case '{':
-		pos++
 		node.op = ND_COMP_STMT
 		node.stmts = new_vec()
 		for !consume('}') {
@@ -706,9 +698,9 @@ func stmt() *Node {
 		}
 		return node
 	case ';':
-		pos++
 		return &null_stmt
 	default:
+		pos--
 		if is_typename() {
 			return decl()
 		}
