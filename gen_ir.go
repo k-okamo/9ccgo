@@ -388,12 +388,19 @@ func gen_expr(node *Node) int {
 	return 0
 }
 
+func get_inc_scale(node *Node) int {
+	if node.ty.ty == PTR {
+		return node.ty.ptr_to.size
+	}
+	return 1
+}
+
 func gen_pre_inc(node *Node, num int) int {
 	addr := gen_lval(node.expr)
 	val := nreg
 	nreg++
 	add(load_insn(node), val, addr)
-	add(IR_ADD_IMM, val, num)
+	add(IR_ADD_IMM, val, num*get_inc_scale(node))
 	add(store_insn(node), addr, val)
 	kill(addr)
 	return val
@@ -401,7 +408,7 @@ func gen_pre_inc(node *Node, num int) int {
 
 func gen_post_inc(node *Node, num int) int {
 	val := gen_pre_inc(node, num)
-	add(IR_SUB_IMM, val, num)
+	add(IR_SUB_IMM, val, num*get_inc_scale(node))
 	return val
 }
 
