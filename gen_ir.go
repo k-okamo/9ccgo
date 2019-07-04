@@ -405,103 +405,110 @@ func gen_post_inc(node *Node, num int) int {
 }
 
 func gen_stmt(node *Node) {
-	if node.op == ND_NULL {
+	switch node.op {
+	case ND_NULL:
 		return
-	}
 
-	if node.op == ND_VARDEF {
-		if node.init == nil {
+	case ND_VARDEF:
+		{
+			if node.init == nil {
+				return
+			}
+			rhs := gen_expr(node.init)
+			lhs := nreg
+			nreg++
+			add(IR_BPREL, lhs, node.offset)
+			add(store_insn(node), lhs, rhs)
+			kill(lhs)
+			kill(rhs)
 			return
 		}
-		rhs := gen_expr(node.init)
-		lhs := nreg
-		nreg++
-		add(IR_BPREL, lhs, node.offset)
-		add(store_insn(node), lhs, rhs)
-		kill(lhs)
-		kill(rhs)
-		return
-	}
-
-	if node.op == ND_IF {
-
-		if node.els != nil {
+	case ND_IF:
+		{
+			if node.els != nil {
+				x := nlabel
+				nlabel++
+				y := nlabel
+				nlabel++
+				r := gen_expr(node.cond)
+				add(IR_UNLESS, r, x)
+				kill(r)
+				gen_stmt(node.then)
+				add(IR_JMP, y, -1)
+				label(x)
+				gen_stmt(node.els)
+				label(y)
+				return
+			}
 			x := nlabel
-			nlabel++
-			y := nlabel
 			nlabel++
 			r := gen_expr(node.cond)
 			add(IR_UNLESS, r, x)
 			kill(r)
 			gen_stmt(node.then)
-			add(IR_JMP, y, -1)
 			label(x)
-			gen_stmt(node.els)
+			return
+		}
+	case ND_FOR:
+		{
+			x := nlabel
+			nlabel++
+			y := nlabel
+			nlabel++
+
+			gen_stmt(node.init)
+			add(IR_LABEL, x, -1)
+			r := gen_expr(node.cond)
+			add(IR_UNLESS, r, y)
+			kill(r)
+			gen_stmt(node.body)
+			gen_stmt(node.inc)
+			add(IR_JMP, x, -1)
 			label(y)
 			return
 		}
-		x := nlabel
-		nlabel++
-		r := gen_expr(node.cond)
-		add(IR_UNLESS, r, x)
-		kill(r)
-		gen_stmt(node.then)
-		label(x)
-		return
-	}
-	if node.op == ND_FOR {
-		x := nlabel
-		nlabel++
-		y := nlabel
-		nlabel++
-
-		gen_stmt(node.init)
-		add(IR_LABEL, x, -1)
-		r := gen_expr(node.cond)
-		add(IR_UNLESS, r, y)
-		kill(r)
-		gen_stmt(node.body)
-		gen_stmt(node.inc)
-		add(IR_JMP, x, -1)
-		label(y)
-		return
-	}
-	if node.op == ND_DO_WHILE {
-		x := nlabel
-		nlabel++
-		label(x)
-		gen_stmt(node.body)
-		r := gen_expr(node.cond)
-		add(IR_IF, r, x)
-		kill(r)
-		return
-	}
-	if node.op == ND_RETURN {
-		r := gen_expr(node.expr)
-
-		// Statement expression (GNU extension)
-		if return_label != 0 {
-			add(IR_MOV, return_reg, r)
+	case ND_DO_WHILE:
+		{
+			x := nlabel
+			nlabel++
+			label(x)
+			gen_stmt(node.body)
+			r := gen_expr(node.cond)
+			add(IR_IF, r, x)
 			kill(r)
-			add(IR_JMP, return_label, -1)
 			return
 		}
+	case ND_RETURN:
+		{
+			r := gen_expr(node.expr)
 
-		add(IR_RETURN, r, -1)
-		kill(r)
-		return
-	}
-	if node.op == ND_EXPR_STMT {
-		kill(gen_expr(node.expr))
-		return
-	}
-	if node.op == ND_COMP_STMT {
-		for i := 0; i < node.stmts.len; i++ {
-			gen_stmt((node.stmts.data[i]).(*Node))
+			// Statement expression (GNU extension)
+			if return_label != 0 {
+				add(IR_MOV, return_reg, r)
+				kill(r)
+				add(IR_JMP, return_label, -1)
+				return
+			}
+
+			add(IR_RETURN, r, -1)
+			kill(r)
+			return
 		}
-		return
+	case ND_EXPR_STMT:
+		{
+			kill(gen_expr(node.expr))
+			return
+		}
+	case ND_COMP_STMT:
+		{
+			for i := 0; i < node.stmts.len; i++ {
+				gen_stmt((node.stmts.data[i]).(*Node))
+			}
+			return
+		}
+	default:
+		error("unknown node: %d", node.op)
 	}
-	error("unknown node: %d", node.op)
 }
 
 func gen_ir(nodes *Vector) *Vector {
