@@ -195,7 +195,7 @@ func walk(node *Node, decay bool) *Node {
 
 		node.ty = node.lhs.ty
 		return node
-	case '=':
+	case '=', ND_MUL_EQ, ND_DIV_EQ, ND_MOD_EQ, ND_ADD_EQ, ND_SUB_EQ, ND_SHL_EQ, ND_SHR_EQ, ND_BITAND_EQ, ND_XOR_EQ, ND_BITOR_EQ:
 		node.lhs = walk(node.lhs, false)
 		check_lval(node.lhs)
 		node.rhs = walk(node.rhs, true)

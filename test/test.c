@@ -189,6 +189,18 @@ int main() {
   EXPECT(4, ({ myint foo = 3; return sizeof(foo);}));
 
   EXPECT(1, ({ typedef struct foo_ foo; return 1;}));
+
+  EXPECT(15, ({ int i=5; i*=3; return i;}));
+  EXPECT(1, ({ int i=5; i/=3; return i;}));
+  EXPECT(2, ({ int i=5; i%=3; return i;}));
+  EXPECT(8, ({ int i=5; i+=3; return i;}));
+  EXPECT(2, ({ int i=5; i-=3; return i;}));
+  EXPECT(40, ({ int i=5; i<<=3; return i;}));
+  EXPECT(0, ({ int i=5; i>>=3; return i;}));
+  EXPECT(1, ({ int i=5; i&=3; return i;}));
+  EXPECT(6, ({ int i=5; i^=3; return i;}));
+  EXPECT(7, ({ int i=5; i|=3; return i;}));
+
   printf("OK\n");
   return 0;
 }

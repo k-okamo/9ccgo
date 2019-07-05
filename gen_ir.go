@@ -181,6 +181,46 @@ func gen_binop(ty int, node *Node) int {
 	return lhs
 }
 
+func to_assign_op(op int) int {
+	switch op {
+	case ND_MUL_EQ:
+		return IR_MUL
+	case ND_DIV_EQ:
+		return IR_DIV
+	case ND_MOD_EQ:
+		return IR_MOD
+	case ND_ADD_EQ:
+		return IR_ADD
+	case ND_SUB_EQ:
+		return IR_SUB
+	case ND_SHL_EQ:
+		return IR_SHL
+	case ND_SHR_EQ:
+		return IR_SHR
+	case ND_BITAND_EQ:
+		return IR_AND
+	case ND_XOR_EQ:
+		return IR_XOR
+	default:
+		//assert(op == ND_BITOR_EQ)
+		return IR_OR
+	}
+}
+
+func gen_assign_op(node *Node) int {
+	src := gen_expr(node.rhs)
+	dst := gen_lval(node.lhs)
+	val := nreg
+	nreg++
+
+	load(node, val, dst)
+	add(to_assign_op(node.op), val, src)
+	kill(src)
+	store(node, dst, val)
+	kill(dst)
+	return val
+}
+
 func gen_expr(node *Node) int {
 
 	switch node.op {
@@ -282,6 +322,8 @@ func gen_expr(node *Node) int {
 			return_reg = orig_reg
 			return r
 		}
+	case ND_MUL_EQ, ND_DIV_EQ, ND_MOD_EQ, ND_ADD_EQ, ND_SUB_EQ, ND_SHL_EQ, ND_SHR_EQ, ND_BITAND_EQ, ND_XOR_EQ, ND_BITOR_EQ:
+		return gen_assign_op(node)
 	case '=':
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)

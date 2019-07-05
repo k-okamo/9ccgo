@@ -44,6 +44,16 @@ const (
 	ND_PRE_DEC                // pre --
 	ND_POST_INC               // post ++
 	ND_POST_DEC               // post --
+	ND_MUL_EQ                 // *=
+	ND_DIV_EQ                 // /=
+	ND_MOD_EQ                 // %=
+	ND_ADD_EQ                 // +=
+	ND_SUB_EQ                 // -=
+	ND_SHL_EQ                 // <<=
+	ND_SHR_EQ                 // >>=
+	ND_BITAND_EQ              // &=
+	ND_XOR_EQ                 // ^=
+	ND_BITOR_EQ               // |=
 	ND_RETURN                 // "return"
 	ND_SIZEOF                 // "sizeof"
 	ND_ALIGNOF                // "_Alignof"
@@ -566,12 +576,50 @@ func conditional() *Node {
 	return node
 }
 
+func assignment_op() int {
+	if consume('=') {
+		return '='
+	}
+	if consume(TK_MUL_EQ) {
+		return ND_MUL_EQ
+	}
+	if consume(TK_DIV_EQ) {
+		return ND_DIV_EQ
+	}
+	if consume(TK_MOD_EQ) {
+		return ND_MOD_EQ
+	}
+	if consume(TK_ADD_EQ) {
+		return ND_ADD_EQ
+	}
+	if consume(TK_SUB_EQ) {
+		return ND_SUB_EQ
+	}
+	if consume(TK_SHL_EQ) {
+		return ND_SHL_EQ
+	}
+	if consume(TK_SHR_EQ) {
+		return ND_SHR_EQ
+	}
+	if consume(TK_BITAND_EQ) {
+		return ND_BITAND_EQ
+	}
+	if consume(TK_XOR_EQ) {
+		return ND_XOR_EQ
+	}
+	if consume(TK_BITOR_EQ) {
+		return ND_BITOR_EQ
+	}
+	return 0
+}
+
 func assign() *Node {
 	lhs := conditional()
-	if !consume('=') {
-		return lhs
+	op := assignment_op()
+	if op != 0 {
+		return new_binop(op, lhs, conditional())
 	}
-	return new_binop('=', lhs, conditional())
+	return lhs
 }
 
 func expr() *Node {

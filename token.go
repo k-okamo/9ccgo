@@ -14,6 +14,8 @@ var (
 	tokens   *Vector
 	keywords *Map
 	symbols  = []Keyword{
+		{name: "<<=", ty: TK_SHL_EQ},
+		{name: ">>=", ty: TK_SHR_EQ},
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "++", ty: TK_INC},
@@ -30,11 +32,9 @@ var (
 		{name: "%=", ty: TK_MOD_EQ},
 		{name: "+=", ty: TK_ADD_EQ},
 		{name: "-=", ty: TK_SUB_EQ},
-		{name: "<<=", ty: TK_SHL_EQ},
-		{name: ">>=", ty: TK_SHR_EQ},
 		{name: "&=", ty: TK_BITAND_EQ},
-		{name: "^=", ty: TK_BITOR_EQ},
-		{name: "|=", ty: TK_BITAND_EQ},
+		{name: "^=", ty: TK_XOR_EQ},
+		{name: "|=", ty: TK_BITOR_EQ},
 	}
 	escaped = map[rune]int{
 		'a': '\a',
