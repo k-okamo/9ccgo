@@ -189,6 +189,10 @@ func map_put(m *Map, key string, val interface{}) {
 	vec_push(m.vals, val)
 }
 
+func map_puti(m *Map, key string, val int) {
+	map_put(m, key, val)
+}
+
 func map_get(m *Map, key string) interface{} {
 	for i := m.keys.len - 1; i >= 0; i-- {
 		if m.keys.data[i].(string) == key {
@@ -196,6 +200,15 @@ func map_get(m *Map, key string) interface{} {
 		}
 	}
 	return nil
+}
+
+func map_geti(m *Map, key string, default_ int) int {
+	for i := m.keys.len - 1; i >= 0; i-- {
+		if m.keys.data[i].(string) == key {
+			return m.vals.data[i].(int)
+		}
+	}
+	return default_
 }
 
 func map_exists(m *Map, key string) bool {

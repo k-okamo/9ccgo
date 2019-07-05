@@ -14,21 +14,6 @@ var (
 	tokens   *Vector
 	keywords *Map
 	symbols  = []Keyword{
-		{name: "_Alignof", ty: TK_ALIGNOF},
-		{name: "break", ty: TK_BREAK},
-		{name: "char", ty: TK_CHAR},
-		{name: "do", ty: TK_DO},
-		{name: "else", ty: TK_ELSE},
-		{name: "extern", ty: TK_EXTERN},
-		{name: "for", ty: TK_FOR},
-		{name: "if", ty: TK_IF},
-		{name: "int", ty: TK_INT},
-		{name: "return", ty: TK_RETURN},
-		{name: "sizeof", ty: TK_SIZEOF},
-		{name: "struct", ty: TK_STRUCT},
-		{name: "typedef", ty: TK_TYPEDEF},
-		{name: "void", ty: TK_VOID},
-		{name: "while", ty: TK_WHILE},
 		{name: "!=", ty: TK_NE},
 		{name: "&&", ty: TK_LOGAND},
 		{name: "++", ty: TK_INC},
@@ -40,6 +25,16 @@ var (
 		{name: ">=", ty: TK_GE},
 		{name: ">>", ty: TK_SHR},
 		{name: "||", ty: TK_LOGOR},
+		{name: "*=", ty: TK_MUL_EQ},
+		{name: "/=", ty: TK_DIV_EQ},
+		{name: "%=", ty: TK_MOD_EQ},
+		{name: "+=", ty: TK_ADD_EQ},
+		{name: "-=", ty: TK_SUB_EQ},
+		{name: "<<=", ty: TK_SHL_EQ},
+		{name: ">>=", ty: TK_SHR_EQ},
+		{name: "&=", ty: TK_BITAND_EQ},
+		{name: "^=", ty: TK_BITOR_EQ},
+		{name: "|=", ty: TK_BITAND_EQ},
 	}
 	escaped = map[rune]int{
 		'a': '\a',
@@ -55,36 +50,46 @@ var (
 )
 
 const (
-	TK_NUM     = iota + 256 // Number literal
-	TK_STR                  // String literal
-	TK_IDENT                // Identifier
-	TK_ARROW                // ->
-	TK_EXTERN               // "extern"
-	TK_TYPEDEF              // "typedef"
-	TK_INT                  // "int"
-	TK_CHAR                 // "char"
-	TK_VOID                 // "void"
-	TK_STRUCT               // "struct"
-	TK_IF                   // "if"
-	TK_ELSE                 // "else"
-	TK_FOR                  // "for"
-	TK_DO                   // "do"
-	TK_WHILE                // "while"
-	TK_BREAK                // "break"
-	TK_EQ                   // ==
-	TK_NE                   // !=
-	TK_LE                   // <=
-	TK_GE                   // >=
-	TK_LOGOR                // ||
-	TK_LOGAND               // &&
-	TK_SHL                  // <<
-	TK_SHR                  // >>
-	TK_INC                  // ++
-	TK_DEC                  // --
-	TK_RETURN               // "return"
-	TK_SIZEOF               // "sizeof"
-	TK_ALIGNOF              // "_Alignof"
-	TK_EOF                  // End marker
+	TK_NUM       = iota + 256 // Number literal
+	TK_STR                    // String literal
+	TK_IDENT                  // Identifier
+	TK_ARROW                  // ->
+	TK_EXTERN                 // "extern"
+	TK_TYPEDEF                // "typedef"
+	TK_INT                    // "int"
+	TK_CHAR                   // "char"
+	TK_VOID                   // "void"
+	TK_STRUCT                 // "struct"
+	TK_IF                     // "if"
+	TK_ELSE                   // "else"
+	TK_FOR                    // "for"
+	TK_DO                     // "do"
+	TK_WHILE                  // "while"
+	TK_BREAK                  // "break"
+	TK_EQ                     // ==
+	TK_NE                     // !=
+	TK_LE                     // <=
+	TK_GE                     // >=
+	TK_LOGOR                  // ||
+	TK_LOGAND                 // &&
+	TK_SHL                    // <<
+	TK_SHR                    // >>
+	TK_INC                    // ++
+	TK_DEC                    // --
+	TK_MUL_EQ                 // *=
+	TK_DIV_EQ                 // /=
+	TK_MOD_EQ                 // %=
+	TK_ADD_EQ                 // +=
+	TK_SUB_EQ                 // -=
+	TK_SHL_EQ                 // <<=
+	TK_SHR_EQ                 // >>=
+	TK_BITAND_EQ              // &=
+	TK_XOR_EQ                 // ^=
+	TK_BITOR_EQ               // |=
+	TK_RETURN                 // "return"
+	TK_SIZEOF                 // "sizeof"
+	TK_ALIGNOF                // "_Alignof"
+	TK_EOF                    // End marker
 )
 
 // Token type
@@ -166,50 +171,6 @@ func read_string(sb *StringBuilder, s string) string {
 	return s[(i + 1):]
 }
 
-/*
-func read_string(sb *StringBuilder, s string) int {
-
-	i := 0
-	c := []rune(s)[0]
-	for i < len(s) && c != '"' {
-		if i == len(s) {
-			error("premature end of input")
-		}
-		if c != '\\' {
-			sb_add(sb, string(c))
-			i++
-			c = []rune(s)[i]
-			continue
-		}
-
-		i++
-		c = []rune(s)[i]
-		switch {
-		case c == 'a':
-			sb_add(sb, "\a")
-		case c == 'b':
-			sb_add(sb, "\b")
-		case c == 'f':
-			sb_add(sb, "\f")
-		case c == 'n':
-			sb_add(sb, "\n")
-		case c == 'r':
-			sb_add(sb, "\r")
-		case c == 't':
-			sb_add(sb, "\t")
-		case c == 'v':
-			sb_add(sb, "\v")
-		case c == '0':
-			error("premature end of input.")
-		default:
-			sb_add(sb, s)
-		}
-		i++
-	}
-	return i + 1
-}
-*/
-
 func add_token(v *Vector, ty int, input string) *Token {
 	t := new(Token)
 	t.ty = ty
@@ -218,9 +179,29 @@ func add_token(v *Vector, ty int, input string) *Token {
 	return t
 }
 
-func tokenize(s string) *Vector {
+func keyword_map() *Map {
+	kmap := new_map()
+	map_puti(kmap, "_Alignof", TK_ALIGNOF)
+	map_puti(kmap, "break", TK_BREAK)
+	map_puti(kmap, "char", TK_CHAR)
+	map_puti(kmap, "do", TK_DO)
+	map_puti(kmap, "else", TK_ELSE)
+	map_puti(kmap, "extern", TK_EXTERN)
+	map_puti(kmap, "for", TK_FOR)
+	map_puti(kmap, "if", TK_IF)
+	map_puti(kmap, "int", TK_INT)
+	map_puti(kmap, "return", TK_RETURN)
+	map_puti(kmap, "sizeof", TK_SIZEOF)
+	map_puti(kmap, "struct", TK_STRUCT)
+	map_puti(kmap, "typedef", TK_TYPEDEF)
+	map_puti(kmap, "void", TK_VOID)
+	map_puti(kmap, "while", TK_WHILE)
+	return kmap
+}
 
+func tokenize(s string) *Vector {
 	v := new_vec()
+	keywords := keyword_map()
 
 loop:
 	for len(s) != 0 {
@@ -274,7 +255,7 @@ loop:
 			continue
 		}
 
-		// Multi-letter token or keywords
+		// Multi-letter symbol
 		for _, sym := range symbols {
 			length := len(sym.name)
 			if length > len(s) {
@@ -288,14 +269,14 @@ loop:
 			continue loop
 		}
 
-		// Single-letter token
+		// Single-letter symbol
 		if strchr("+-*/;=(),{}<>[]&.!?:|^%", c) != "" {
 			add_token(v, int(c), s)
 			s = s[1:]
 			continue
 		}
 
-		// Identifier
+		// Keyword or identifier
 		if IsAlpha(c) || c == '_' {
 			length := 1
 		LABEL:
@@ -309,7 +290,16 @@ loop:
 				}
 				length++
 			}
-			t := add_token(v, TK_IDENT, s)
+
+			name := strndup(s, length)
+			ty := map_geti(keywords, name, -1)
+
+			var t *Token
+			if ty == -1 {
+				t = add_token(v, TK_IDENT, s)
+			} else {
+				t = add_token(v, ty, s)
+			}
 			t.name = strndup(s, length)
 			s = s[length:]
 			continue
