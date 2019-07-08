@@ -279,12 +279,6 @@ func walk(node *Node, decay bool) *Node {
 		}
 		node.ty = &int_ty
 		return node
-	case ND_FUNC:
-		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(node.args.data[i].(*Node), true)
-		}
-		node.body = walk(node.body, true)
-		return node
 	case ND_COMP_STMT:
 		{
 			env = new_env(env)
@@ -320,9 +314,13 @@ func sema(nodes *Vector) *Vector {
 		}
 
 		//assert(node.op == ND_FUNC)
-
 		stacksize = 0
-		walk(node, true)
+
+		for i := 0; i < node.args.len; i++ {
+			node.args.data[i] = walk(node.args.data[i].(*Node), true)
+		}
+		node.body = walk(node.body, true)
+
 		node.stacksize = stacksize
 	}
 
