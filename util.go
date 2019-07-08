@@ -212,7 +212,7 @@ func map_geti(m *Map, key string, default_ int) int {
 }
 
 func map_exists(m *Map, key string) bool {
-	for i := 0; i < m.keys.len; i++ {
+	for i := m.keys.len - 1; i >= 0; i-- {
 		if m.keys.data[i] == key {
 			return true
 		}

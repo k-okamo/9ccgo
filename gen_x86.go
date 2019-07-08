@@ -7,14 +7,18 @@ import (
 )
 
 var (
-	n        int
-	glabel   int
-	argreg8  = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
-	argreg32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
-	argreg64 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+	n         int
+	glabel    int
+	regs      = []string{"r10", "r11", "rbx", "r12", "r13", "r14", "r15"}
+	regs8     = []string{"r10b", "r11b", "b1", "r12b", "r13b", "r14b", "r15b"}
+	regs32    = []string{"r10d", "r11d", "ebx", "r12d", "r13d", "r14d", "r15d"}
+	argregs   = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+	argregs8  = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
+	argregs32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
+	nregs     = len(regs)
 )
 
-func escape(s string, length int) string {
+func backslash_escape(s string, length int) string {
 
 	if len(s) == 0 {
 		return string([]rune{'\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0', '\\', '0', '0', '0'})
@@ -51,13 +55,13 @@ func escape(s string, length int) string {
 
 func argreg(r, size int) string {
 	if size == 1 {
-		return argreg8[r]
+		return argregs8[r]
 	}
 	if size == 4 {
-		return argreg32[r]
+		return argregs32[r]
 	}
 	// assert(size == 8)
-	return argreg64[r]
+	return argregs[r]
 }
 
 func gen_label() string {
@@ -120,7 +124,7 @@ func gen(fn *Function) {
 		case IR_CALL:
 			{
 				for i := 0; i < ir.nargs; i++ {
-					emit("mov %s, %s", argreg64[i], regs[ir.args[i]])
+					emit("mov %s, %s", argregs[i], regs[ir.args[i]])
 				}
 				emit("push r10")
 				emit("push r11")
@@ -231,7 +235,7 @@ func gen_x86(globals, fns *Vector) {
 			continue
 		}
 		fmt.Printf("%s:\n", v.name)
-		emit(".ascii \"%s\"", escape(v.data, v.len))
+		emit(".ascii \"%s\"", backslash_escape(v.data, v.len))
 	}
 
 	fmt.Printf(".text\n")
