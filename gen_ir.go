@@ -328,8 +328,8 @@ func gen_expr(node *Node) int {
 		{
 			rhs, lhs := gen_expr(node.rhs), gen_lval(node.lhs)
 			store(node, lhs, rhs)
-			kill(rhs)
-			return lhs
+			kill(lhs)
+			return rhs
 		}
 	case '+', '-':
 		{
