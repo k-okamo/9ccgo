@@ -211,15 +211,6 @@ func map_geti(m *Map, key string, default_ int) int {
 	return default_
 }
 
-func map_exists(m *Map, key string) bool {
-	for i := m.keys.len - 1; i >= 0; i-- {
-		if m.keys.data[i] == key {
-			return true
-		}
-	}
-	return false
-}
-
 func format(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, a...)
 }
@@ -381,9 +372,6 @@ func map_test() {
 
 	map_put(m, "foo", 6)
 	expect_test(file, line+10, 6, map_get(m, "foo").(int))
-
-	expect_test_bool(file, line+12, true, map_exists(m, "foo"))
-	expect_test_bool(file, line+13, false, map_exists(m, "baz"))
 }
 
 func sb_test() {

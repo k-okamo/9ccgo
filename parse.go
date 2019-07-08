@@ -143,8 +143,9 @@ func new_penv(next *PEnv) *PEnv {
 
 func find_typedef(name string) *Type {
 	for e := penv; e != nil; e = e.next {
-		if map_exists(e.typedefs, name) {
-			return map_get(e.typedefs, name).(*Type)
+		ty := map_get(e.typedefs, name)
+		if ty != nil {
+			return ty.(*Type)
 		}
 	}
 	return nil
@@ -152,8 +153,9 @@ func find_typedef(name string) *Type {
 
 func find_tag(name string) *Type {
 	for e := penv; e != nil; e = e.next {
-		if map_exists(e.tags, name) {
-			return map_get(e.tags, name).(*Type)
+		ty := map_get(e.tags, name)
+		if ty != nil {
+			return ty.(*Type)
 		}
 	}
 	return nil
