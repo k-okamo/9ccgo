@@ -40,8 +40,6 @@ const (
 	ND_SHR                    // >>
 	ND_MOD                    // %
 	ND_NEG                    // -
-	ND_PRE_INC                // pre ++
-	ND_PRE_DEC                // pre --
 	ND_POST_INC               // post ++
 	ND_POST_DEC               // post --
 	ND_MUL_EQ                 // *=
@@ -300,6 +298,14 @@ func new_expr(op int, expr *Node) *Node {
 	return node
 }
 
+func new_num(val int) *Node {
+	node := new(Node)
+	node.op = ND_NUM
+	node.ty = int_tyf()
+	node.val = val
+	return node
+}
+
 func ident() string {
 	t := tokens.data[pos].(*Token)
 	pos++
@@ -328,10 +334,7 @@ func primary() *Node {
 
 	node := new(Node)
 	if t.ty == TK_NUM {
-		node.ty = int_tyf()
-		node.op = ND_NUM
-		node.val = t.val
-		return node
+		return new_num(t.val)
 	}
 
 	if t.ty == TK_STR {
@@ -417,18 +420,20 @@ func unary() *Node {
 	if consume('!') {
 		return new_expr('!', unary())
 	}
-	if consume(TK_INC) {
-		return new_expr(ND_PRE_INC, unary())
-	}
-	if consume(TK_DEC) {
-		return new_expr(ND_PRE_DEC, unary())
-	}
 	if consume(TK_SIZEOF) {
 		return new_expr(ND_SIZEOF, unary())
 	}
 	if consume(TK_ALIGNOF) {
 		return new_expr(ND_ALIGNOF, unary())
 	}
+
+	if consume(TK_INC) {
+		return new_binop(ND_ADD_EQ, unary(), new_num(1))
+	}
+	if consume(TK_DEC) {
+		return new_binop(ND_SUB_EQ, unary(), new_num(1))
+	}
+
 	return postfix()
 }
 

@@ -15,6 +15,9 @@ package main
 //   Recall that, in C, "array of T" is automatically converted to
 //   "pointer to T" in most contexts.
 //
+// - Scales operands for pointer arithmetic. E.g. ptr+1 becomes ptr+4
+//   for integer and becomes ptr+8 for pointer.
+//
 // - Reject bad assignments, such as `1=2+3`.
 
 var (
@@ -102,6 +105,14 @@ func new_int(val int) *Node {
 	node.ty.ty = INT
 	node.val = val
 	return node
+}
+
+func scale_ptr(node *Node, ty *Type) *Node {
+	e := new(Node)
+	e.op = '*'
+	e.lhs = node
+	e.rhs = new_int(ty.ptr_to.size)
+	return e
 }
 
 func walk(node *Node, decay bool) *Node {
@@ -193,9 +204,23 @@ func walk(node *Node, decay bool) *Node {
 			error("pointer %c pointer' is not defined", node.op)
 		}
 
+		if node.lhs.ty.ty == PTR {
+			node.rhs = scale_ptr(node.rhs, node.lhs.ty)
+		}
+
 		node.ty = node.lhs.ty
 		return node
-	case '=', ND_MUL_EQ, ND_DIV_EQ, ND_MOD_EQ, ND_ADD_EQ, ND_SUB_EQ, ND_SHL_EQ, ND_SHR_EQ, ND_BITAND_EQ, ND_XOR_EQ, ND_BITOR_EQ:
+	case ND_ADD_EQ, ND_SUB_EQ:
+		node.lhs = walk(node.lhs, false)
+		check_lval(node.lhs)
+		node.rhs = walk(node.rhs, true)
+		node.ty = node.lhs.ty
+
+		if node.lhs.ty.ty == PTR {
+			node.rhs = scale_ptr(node.rhs, node.lhs.ty)
+		}
+		return node
+	case '=', ND_MUL_EQ, ND_DIV_EQ, ND_MOD_EQ, ND_SHL_EQ, ND_SHR_EQ, ND_BITAND_EQ, ND_XOR_EQ, ND_BITOR_EQ:
 		node.lhs = walk(node.lhs, false)
 		check_lval(node.lhs)
 		node.rhs = walk(node.rhs, true)
@@ -238,7 +263,7 @@ func walk(node *Node, decay bool) *Node {
 		node.rhs = walk(node.rhs, true)
 		node.ty = node.rhs.ty
 		return node
-	case ND_PRE_INC, ND_PRE_DEC, ND_POST_INC, ND_POST_DEC, ND_NEG, '!':
+	case ND_POST_INC, ND_POST_DEC, ND_NEG, '!':
 		node.expr = walk(node.expr, true)
 		node.ty = node.expr.ty
 		return node

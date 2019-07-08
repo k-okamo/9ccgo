@@ -37,7 +37,7 @@ var irinfo = map[int]IRInfo{
 	IR_UNLESS:     {name: "UNLESS", ty: IR_TY_REG_LABEL},
 	IR_CALL:       {name: "CALL", ty: IR_TY_CALL},
 	IR_RETURN:     {name: "RET", ty: IR_TY_REG},
-	IR_LOAD:       {name: "LOAD8", ty: IR_TY_MEM},
+	IR_LOAD:       {name: "LOAD", ty: IR_TY_MEM},
 	IR_MOD:        {name: "MOD", ty: IR_TY_REG_REG},
 	IR_NEG:        {name: "NEG", ty: IR_TY_REG},
 	IR_STORE:      {name: "STORE", ty: IR_TY_MEM},
