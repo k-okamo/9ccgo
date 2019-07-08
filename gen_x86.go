@@ -15,7 +15,7 @@ var (
 	argregs   = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 	argregs8  = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
 	argregs32 = []string{"edi", "esi", "edx", "ecx", "r8d", "r9d"}
-	nregs     = len(regs)
+	num_regs  = len(regs)
 )
 
 func backslash_escape(s string, length int) string {

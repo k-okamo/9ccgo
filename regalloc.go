@@ -25,7 +25,7 @@ func alloc(ir_reg int) int {
 		return r
 	}
 
-	for i := 0; i < nregs; i++ {
+	for i := 0; i < num_regs; i++ {
 		if used[i] == true {
 			continue
 		}
@@ -64,7 +64,7 @@ func visit(irv *Vector) {
 
 func alloc_regs(fns *Vector) {
 
-	used = make([]bool, nregs)
+	used = make([]bool, num_regs)
 
 	for i := 0; i < reg_map_sz; i++ {
 		reg_map[i] = -1
