@@ -1,5 +1,16 @@
 package main
 
+// Unit tests for out data structures
+//
+// This kind of file is usually built as an independent executable in
+// a common build config, but in 9ccgo I took a different approach.
+// This file is just a part of the main executable. This scheme greatly
+// simplifies build config.
+//
+// In return for the simplicity, the main execurable becomes slightly
+// larger, but that's not a problem for top programs like 9ccgo.
+// What is most important is to write tests while keeping everything simple.
+
 import (
 	"testing"
 )
