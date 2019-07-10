@@ -153,7 +153,11 @@ func gen(fn *Function) {
 		case IR_OR:
 			emit("or %s, %s", regs[lhs], regs[rhs])
 		case IR_XOR:
-			emit("xor %s, %s", regs[lhs], regs[rhs])
+			if ir.is_imm {
+				emit("xor %s, %d", regs[lhs], rhs)
+			} else {
+				emit("xor %s, %s", regs[lhs], regs[rhs])
+			}
 		case IR_SHL:
 			emit("mov cl, %s", regs8[rhs])
 			emit("shl %s, cl", regs[lhs])
@@ -178,19 +182,25 @@ func gen(fn *Function) {
 		case IR_STORE_ARG:
 			emit("mov [rbp-%d], %s", lhs, argreg(rhs, ir.size))
 		case IR_ADD:
-			emit("add %s, %s", regs[lhs], regs[rhs])
-		case IR_ADD_IMM:
-			emit("add %s, %d", regs[lhs], rhs)
+			if ir.is_imm {
+				emit("add %s, %d", regs[lhs], rhs)
+			} else {
+				emit("add %s, %s", regs[lhs], regs[rhs])
+			}
 		case IR_SUB:
-			emit("sub %s, %s", regs[lhs], regs[rhs])
-		case IR_SUB_IMM:
-			emit("sub %s, %d", regs[lhs], rhs)
+			if ir.is_imm {
+				emit("sub %s, %d", regs[lhs], rhs)
+			} else {
+				emit("sub %s, %s", regs[lhs], regs[rhs])
+			}
 		case IR_MUL:
-			emit("mov rax, %s", regs[rhs])
-			emit("mul %s", regs[lhs])
-			emit("mov %s, rax", regs[lhs])
-		case IR_MUL_IMM:
-			if rhs < 256 && popcount(uint(rhs)) == 1 {
+			if !ir.is_imm {
+				emit("mov rax, %s", regs[rhs])
+				emit("mul %s", regs[lhs])
+				emit("mov %s, rax", regs[lhs])
+				break
+			}
+			if popcount(uint(rhs)) == 1 {
 				emit("shl %s, %d", regs[lhs], ctz(uint(rhs)))
 				break
 			}

@@ -32,20 +32,6 @@ type Env struct {
 	next *Env
 }
 
-type Var struct {
-	ty       *Type
-	is_local bool
-
-	// local
-	offset int
-
-	// global
-	name      string
-	is_extern bool
-	data      string
-	len       int
-}
-
 func new_env(next *Env) *Env {
 	env := new(Env)
 	env.vars = new_map()
@@ -263,7 +249,7 @@ func walk(node *Node, decay bool) *Node {
 		node.rhs = walk(node.rhs, true)
 		node.ty = node.rhs.ty
 		return node
-	case ND_POST_INC, ND_POST_DEC, ND_NEG, '!':
+	case ND_POST_INC, ND_POST_DEC, ND_NEG, '!', '~':
 		node.expr = walk(node.expr, true)
 		node.ty = node.expr.ty
 		return node

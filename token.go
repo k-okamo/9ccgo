@@ -49,61 +49,6 @@ var (
 	}
 )
 
-const (
-	TK_NUM       = iota + 256 // Number literal
-	TK_STR                    // String literal
-	TK_IDENT                  // Identifier
-	TK_ARROW                  // ->
-	TK_EXTERN                 // "extern"
-	TK_TYPEDEF                // "typedef"
-	TK_INT                    // "int"
-	TK_CHAR                   // "char"
-	TK_VOID                   // "void"
-	TK_STRUCT                 // "struct"
-	TK_IF                     // "if"
-	TK_ELSE                   // "else"
-	TK_FOR                    // "for"
-	TK_DO                     // "do"
-	TK_WHILE                  // "while"
-	TK_BREAK                  // "break"
-	TK_EQ                     // ==
-	TK_NE                     // !=
-	TK_LE                     // <=
-	TK_GE                     // >=
-	TK_LOGOR                  // ||
-	TK_LOGAND                 // &&
-	TK_SHL                    // <<
-	TK_SHR                    // >>
-	TK_INC                    // ++
-	TK_DEC                    // --
-	TK_MUL_EQ                 // *=
-	TK_DIV_EQ                 // /=
-	TK_MOD_EQ                 // %=
-	TK_ADD_EQ                 // +=
-	TK_SUB_EQ                 // -=
-	TK_SHL_EQ                 // <<=
-	TK_SHR_EQ                 // >>=
-	TK_BITAND_EQ              // &=
-	TK_XOR_EQ                 // ^=
-	TK_BITOR_EQ               // |=
-	TK_RETURN                 // "return"
-	TK_SIZEOF                 // "sizeof"
-	TK_ALIGNOF                // "_Alignof"
-	TK_EOF                    // End marker
-)
-
-// Token type
-type Token struct {
-	ty    int    // Token type
-	val   int    // Number literal
-	name  string // Identifier
-	input string // Token string (for error reporting)
-
-	// String literal
-	str string
-	len int
-}
-
 type Keyword struct {
 	name string
 	ty   int
@@ -270,7 +215,7 @@ loop:
 		}
 
 		// Single-letter symbol
-		if strchr("+-*/;=(),{}<>[]&.!?:|^%", c) != "" {
+		if strchr("+-*/;=(),{}<>[]&.!?:|^%~", c) != "" {
 			add_token(v, int(c), s)
 			s = s[1:]
 			continue

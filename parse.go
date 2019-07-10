@@ -16,115 +16,6 @@ var (
 	break_stmt = Node{op: ND_BREAK}
 )
 
-const (
-	ND_NUM       = iota + 256 // Number literal
-	ND_STR                    // String literal
-	ND_IDENT                  // Identigier
-	ND_STRUCT                 // Struct
-	ND_VARDEF                 // Variable definition
-	ND_LVAR                   // Local variable reference
-	ND_GVAR                   // Global variable reference
-	ND_IF                     // "if"
-	ND_FOR                    // "for"
-	ND_DO_WHILE               // do ... while
-	ND_BREAK                  // break
-	ND_ADDR                   // address-of operator ("&")
-	ND_DEREF                  // pointer dereference ("*")
-	ND_DOT                    // Struct member access
-	ND_EQ                     // ==
-	ND_NE                     // !=
-	ND_LE                     // <=
-	ND_LOGOR                  // ||
-	ND_LOGAND                 // &&
-	ND_SHL                    // <<
-	ND_SHR                    // >>
-	ND_MOD                    // %
-	ND_NEG                    // -
-	ND_POST_INC               // post ++
-	ND_POST_DEC               // post --
-	ND_MUL_EQ                 // *=
-	ND_DIV_EQ                 // /=
-	ND_MOD_EQ                 // %=
-	ND_ADD_EQ                 // +=
-	ND_SUB_EQ                 // -=
-	ND_SHL_EQ                 // <<=
-	ND_SHR_EQ                 // >>=
-	ND_BITAND_EQ              // &=
-	ND_XOR_EQ                 // ^=
-	ND_BITOR_EQ               // |=
-	ND_RETURN                 // "return"
-	ND_SIZEOF                 // "sizeof"
-	ND_ALIGNOF                // "_Alignof"
-	ND_CALL                   // Function call
-	ND_FUNC                   // Function definition
-	ND_COMP_STMT              // Compound statement
-	ND_EXPR_STMT              // Expressions statement
-	ND_STMT_EXPR              // Statement expression (GUN extn.)
-	ND_NULL                   // Null statement
-)
-
-const (
-	INT = iota
-	CHAR
-	VOID
-	PTR
-	ARY
-	STRUCT
-)
-
-type Node struct {
-	op    int     // Node type
-	ty    *Type   // C type
-	lhs   *Node   // left-hand side
-	rhs   *Node   // right-hand side
-	val   int     // Number literal
-	expr  *Node   // "return" or expression stmt
-	stmts *Vector // Compound statement
-
-	name string // Identifier
-
-	// Global variable
-	is_extern bool
-	data      string
-	len       int
-
-	// "if" ( cond ) then "else" els
-	// "for" ( init; cond; inc ) body
-	cond *Node
-	then *Node
-	els  *Node
-	init *Node
-	body *Node
-	inc  *Node
-
-	// Function definition
-	stacksize int
-	globals   *Vector
-
-	// Offset from BP or beginning of a struct
-	offset int
-
-	// Function call
-	args *Vector
-}
-
-type Type struct {
-	ty    int
-	size  int
-	align int
-
-	// Pointer
-	ptr_to *Type
-
-	// Array
-	ary_of *Type
-	len    int
-
-	// Struct
-	members *Vector
-	offset  int
-}
-
 type PEnv struct {
 	typedefs *Map
 	tags     *Map
@@ -419,6 +310,9 @@ func unary() *Node {
 	}
 	if consume('!') {
 		return new_expr('!', unary())
+	}
+	if consume('~') {
+		return new_expr('~', unary())
 	}
 	if consume(TK_SIZEOF) {
 		return new_expr(ND_SIZEOF, unary())

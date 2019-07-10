@@ -24,84 +24,18 @@ var (
 	break_label  int
 )
 
-const (
-	IR_ADD = iota + 256
-	IR_ADD_IMM
-	IR_SUB
-	IR_SUB_IMM
-	IR_MUL
-	IR_MUL_IMM
-	IR_DIV
-	IR_IMM
-	IR_BPREL
-	IR_MOV
-	IR_RETURN
-	IR_CALL
-	IR_LABEL
-	IR_LABEL_ADDR
-	IR_EQ
-	IR_NE
-	IR_LE
-	IR_LT
-	IR_AND
-	IR_OR
-	IR_XOR
-	IR_SHL
-	IR_SHR
-	IR_MOD
-	IR_NEG
-	IR_JMP
-	IR_IF
-	IR_UNLESS
-	IR_LOAD
-	IR_STORE
-	IR_STORE_ARG
-	IR_KILL
-	IR_NOP
-)
-
-const (
-	IR_TY_NOARG = iota + 256
-	IR_TY_REG
-	IR_TY_IMM
-	IR_TY_MEM
-	IR_TY_JMP
-	IR_TY_LABEL
-	IR_TY_LABEL_ADDR
-	IR_TY_REG_REG
-	IR_TY_REG_IMM
-	IR_TY_STORE_ARG
-	IR_TY_REG_LABEL
-	IR_TY_CALL
-)
-
-type IR struct {
-	op  int
-	lhs int
-	rhs int
-
-	// Load/Store size in bytes
-	size int
-
-	// Function call
-	name  string
-	nargs int
-	args  [6]int
-}
-
-type Function struct {
-	name      string
-	stacksize int
-	globals   *Vector
-	ir        *Vector
-}
-
 func add(op, lhs, rhs int) *IR {
 	ir := new(IR)
 	ir.op = op
 	ir.lhs = lhs
 	ir.rhs = rhs
 	vec_push(code, ir)
+	return ir
+}
+
+func add_imm(op, lhs, rhs int) *IR {
+	ir := add(op, lhs, rhs)
+	ir.is_imm = true
 	return ir
 }
 
@@ -156,7 +90,7 @@ func gen_lval(node *Node) int {
 
 	if node.op == ND_DOT {
 		r := gen_lval(node.expr)
-		add(IR_ADD_IMM, r, node.offset)
+		add_imm(IR_ADD, r, node.offset)
 		return r
 	}
 
@@ -179,6 +113,30 @@ func gen_binop(ty int, node *Node) int {
 	add(ty, lhs, rhs)
 	kill(rhs)
 	return lhs
+}
+
+func get_inc_scale(node *Node) int {
+	if node.ty.ty == PTR {
+		return node.ty.ptr_to.size
+	}
+	return 1
+}
+
+func gen_pre_inc(node *Node, num int) int {
+	addr := gen_lval(node.expr)
+	val := nreg
+	nreg++
+	load(node, val, addr)
+	add_imm(IR_ADD, val, num*get_inc_scale(node))
+	store(node, addr, val)
+	kill(addr)
+	return val
+}
+
+func gen_post_inc(node *Node, num int) int {
+	val := gen_pre_inc(node, num)
+	add_imm(IR_SUB, val, num*get_inc_scale(node))
+	return val
 }
 
 func to_assign_op(op int) int {
@@ -355,6 +313,12 @@ func gen_expr(node *Node) int {
 		return gen_binop(IR_SHL, node)
 	case ND_SHR:
 		return gen_binop(IR_SHR, node)
+	case '~':
+		{
+			r := gen_expr(node.expr)
+			add_imm(IR_XOR, r, -1)
+			return r
+		}
 	case ND_NEG:
 		{
 			r := gen_expr(node.expr)
@@ -404,30 +368,6 @@ func gen_expr(node *Node) int {
 	}
 
 	return 0
-}
-
-func get_inc_scale(node *Node) int {
-	if node.ty.ty == PTR {
-		return node.ty.ptr_to.size
-	}
-	return 1
-}
-
-func gen_pre_inc(node *Node, num int) int {
-	addr := gen_lval(node.expr)
-	val := nreg
-	nreg++
-	load(node, val, addr)
-	add(IR_ADD_IMM, val, num*get_inc_scale(node))
-	store(node, addr, val)
-	kill(addr)
-	return val
-}
-
-func gen_post_inc(node *Node, num int) int {
-	val := gen_pre_inc(node, num)
-	add(IR_SUB_IMM, val, num*get_inc_scale(node))
-	return val
 }
 
 func gen_stmt(node *Node) {

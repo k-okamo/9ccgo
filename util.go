@@ -9,12 +9,6 @@ import (
 	"unsafe"
 )
 
-type StringBuilder struct {
-	data     string
-	capacity int
-	len      int
-}
-
 func new_sb() *StringBuilder {
 	sb := new(StringBuilder)
 	sb.data = ""
@@ -171,12 +165,6 @@ func copy_vector(src, dst *Vector) {
 	}
 }
 
-// Map
-type Map struct {
-	keys *Vector
-	vals *Vector
-}
-
 func new_map() *Map {
 	m := new(Map)
 	m.keys = new_vec()
@@ -213,13 +201,6 @@ func map_geti(m *Map, key string, default_ int) int {
 
 func format(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, a...)
-}
-
-// Vector
-type Vector struct {
-	data     []interface{}
-	capacity int
-	len      int
 }
 
 func new_vec() *Vector {
