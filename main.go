@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	debug bool
+	debug    bool
+	filename string
 )
 
 func main() {
@@ -18,7 +19,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	var filename string
 	dump_ir1 := false
 	dump_ir2 := false
 
@@ -75,6 +75,11 @@ func read_file(filename string) string {
 			break
 		}
 		sb_append_n(sb, string(buf[:n]), n)
+
+	}
+
+	if sb.data[sb.len-1] != '\n' {
+		sb_add(sb, "\n")
 	}
 	return sb_get(sb)
 }

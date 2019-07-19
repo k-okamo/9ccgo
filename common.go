@@ -86,14 +86,16 @@ const (
 
 // Token type
 type Token struct {
-	ty    int    // Token type
-	val   int    // Number literal
-	name  string // Identifier
-	input string // Token string (for error reporting)
+	ty   int    // Token type
+	val  int    // Number literal
+	name string // Identifier
 
 	// String literal
 	str string
 	len int
+
+	// For error reporting
+	start string
 }
 
 // parse.go

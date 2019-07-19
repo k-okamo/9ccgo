@@ -7,13 +7,15 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"unicode"
 )
 
 var (
-	tokens   *Vector
-	keywords *Map
-	symbols  = []Keyword{
+	input_file string
+	tokens     *Vector
+	keywords   *Map
+	symbols    = []Keyword{
 		{name: "<<=", ty: TK_SHL_EQ},
 		{name: ">>=", ty: TK_SHR_EQ},
 		{name: "!=", ty: TK_NE},
@@ -116,10 +118,89 @@ func read_string(sb *StringBuilder, s string) string {
 	return s[(i + 1):]
 }
 
-func add_token(v *Vector, ty int, input string) *Token {
+/*
+func print_line(t *Token) {
+	start := input_file
+	line := 0
+	col := 0
+
+	for i, c := range input_file {
+		if c == '\n' {
+			start = input_file[i+1:]
+			line++
+			col = 0
+
+			continue
+		}
+
+		if start != t.start {
+			col++
+			start = start[1:]
+			continue
+		}
+
+		fmt.Fprintf(os.Stderr, "error at %s:%d:%d\n\n", filename, line+1, col+1)
+
+		linelen := len(strchr(input_file, '\n')) - len(start)
+		fmt.Fprintf(os.Stderr, "%.*s\n", linelen, start)
+		//fmt.Fprintf(os.Stderr, "%s\n", s)
+
+		for i := 0; i < col; i++ {
+			fmt.Fprintf(os.Stderr, " ")
+		}
+		fmt.Fprintf(os.Stderr, "^\n\n")
+		return
+	}
+}
+*/
+
+func print_line(t *Token) {
+	curline, start := input_file, input_file
+	line, col := 0, 0
+
+	for i, c := range input_file {
+
+		if c == '\n' {
+			curline = input_file[i+1:]
+			line++
+			col = 0
+			//start = start[i:]
+			start = input_file[i+1:]
+			continue
+		}
+
+		if start != t.start {
+			col++
+			start = input_file[i+1:]
+			continue
+		}
+
+		fmt.Fprintf(os.Stderr, "error at %s:%d:%d\n\n", filename, line+1, col+1)
+		for i, c2 := range curline {
+			if c2 == '\n' {
+				curline = curline[:i]
+				break
+			}
+		}
+		fmt.Fprintf(os.Stderr, "%s\n", curline)
+
+		for i := 0; i < col-1; i++ {
+			fmt.Fprintf(os.Stderr, " ")
+		}
+		fmt.Fprintf(os.Stderr, "^\n\n")
+		return
+	}
+}
+
+func bad_token(t *Token, msg string) {
+	print_line(t)
+	error(msg)
+}
+
+func add_token(v *Vector, ty int, start string) *Token {
 	t := new(Token)
 	t.ty = ty
-	t.input = input
+	t.start = start
 	vec_push(v, t)
 	return t
 }
@@ -145,6 +226,7 @@ func keyword_map() *Map {
 }
 
 func tokenize(s string) *Vector {
+	input_file = s
 	v := new_vec()
 	keywords := keyword_map()
 
@@ -346,7 +428,7 @@ func print_tokens(tokens *Vector) {
 		default:
 			ty = "         "
 		}
-		fmt.Printf("[%02d] ty: %s, val: %d, input: %s", i, ty, t.val, t.input)
+		fmt.Printf("[%02d] ty: %s, val: %d, input: %s", i, ty, t.val, t.start)
 	}
 	fmt.Println("")
 }

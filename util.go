@@ -304,6 +304,10 @@ func isgraph(c rune) bool {
 	return 0x21 <= c && c <= 0x7e
 }
 
+func isprint(c rune) bool {
+	return 0x20 <= c && c <= 0x7e
+}
+
 func IsAlpha(c rune) bool {
 	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
 }

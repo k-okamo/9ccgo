@@ -52,10 +52,17 @@ func find_tag(name string) *Type {
 
 func expect(ty int) {
 	t := tokens.data[pos].(*Token)
-	if t.ty != ty {
-		error("%c (%d) expected, but got %c (%d)", ty, ty, t.ty, t.ty)
+	if t.ty == ty {
+		pos++
+		return
 	}
-	pos++
+
+	if isprint(rune(ty)) {
+		bad_token(t, format("%c expected", ty))
+	}
+	// assert(ty == TK_WHILE)
+	//bad_token(t, format("'while' expected", ty))
+	bad_token(t, "'while' expected")
 }
 
 func new_prim_ty(ty, size int) *Type {
@@ -149,7 +156,7 @@ func read_type() *Type {
 		}
 
 		if tag == "" && members == nil {
-			error("bad struct definition")
+			bad_token(t, "bad struct definition")
 		}
 
 		var ty *Type
@@ -201,7 +208,7 @@ func ident() string {
 	t := tokens.data[pos].(*Token)
 	pos++
 	if t.ty != TK_IDENT {
-		error("identifier expected, but got %s", t.input)
+		bad_token(t, "identifier expected")
 	}
 	return t.name
 }
@@ -258,7 +265,7 @@ func primary() *Node {
 		return node
 	}
 
-	error("number expected, but got %s", t.input)
+	bad_token(t, "primery expression expected")
 	return nil
 }
 
@@ -350,9 +357,10 @@ func mul() *Node {
 func read_array(ty *Type) *Type {
 	v := new_vec()
 	for consume('[') {
+		t := tokens.data[pos].(*Token)
 		l := expr()
 		if l.op != ND_NUM {
-			error("number expected")
+			bad_token(t, "number expected")
 		}
 		vec_push(v, l)
 		expect(']')
@@ -535,7 +543,7 @@ func ttype() *Type {
 	t := tokens.data[pos].(*Token)
 	ty := read_type()
 	if ty == nil {
-		error("typename expected, but got %s", t.input)
+		bad_token(t, "typename expected")
 	}
 	for consume('*') {
 		ty = ptr_to(ty)
@@ -554,9 +562,10 @@ func decl() *Node {
 	node.name = ident()
 
 	// Read the second half of type name (e.g. `[3][5]`).
+	t := tokens.data[pos].(*Token)
 	node.ty = read_array(node.ty)
 	if node.ty.ty == VOID {
-		error("void variable: %s", node.name)
+		bad_token(t, "void variable")
 	}
 
 	// Read an initializer.
@@ -690,10 +699,11 @@ func toplevel() *Node {
 	is_typedef := consume(TK_TYPEDEF)
 	is_extern := consume(TK_EXTERN)
 
+	t := tokens.data[pos].(*Token)
+
 	ty := ttype()
 	if ty == nil {
-		t := tokens.data[pos].(*Token)
-		error("typename expected, but got %s", t.input)
+		bad_token(t, "typename expected")
 	}
 
 	name := ident()
@@ -716,7 +726,7 @@ func toplevel() *Node {
 
 		expect('{')
 		if is_typedef {
-			error("typedef %s has function definition", name)
+			bad_token(t, "typedef %s has function definition")
 		}
 		node.body = compound_stmt()
 		return node
