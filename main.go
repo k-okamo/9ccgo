@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
@@ -14,7 +13,10 @@ var (
 func main() {
 
 	//debug = true
-	if len(os.Args) > 1 && os.Args[1] == "-test" {
+	if len(os.Args) == 1 {
+		usage()
+	}
+	if len(os.Args) == 2 && os.Args[1] == "-test" {
 		util_test()
 		os.Exit(0)
 	}
@@ -30,8 +32,7 @@ func main() {
 		filename = os.Args[2]
 	} else {
 		if len(os.Args) != 2 {
-			fmt.Fprintf(os.Stderr, "Usage: 9ccgo [-test] [-dump-ir1] [-dump-ir2] <file>\n")
-			os.Exit(0)
+			usage()
 		}
 		filename = os.Args[1]
 	}
@@ -58,9 +59,14 @@ func main() {
 }
 
 func read_file(filename string) string {
-	f, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
+	f := os.Stdin
+	if filename != "-" {
+		f2, err := os.Open(filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		f = f2
+		defer f2.Close()
 	}
 	defer f.Close()
 
@@ -82,4 +88,8 @@ func read_file(filename string) string {
 		sb_add(sb, "\n")
 	}
 	return sb_get(sb)
+}
+
+func usage() {
+	error("Usage: 9ccgo [-test] [-dump-ir1] [-dump-ir2] <file>")
 }
