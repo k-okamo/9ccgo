@@ -12,7 +12,6 @@ var (
 
 func main() {
 
-	//debug = true
 	if len(os.Args) == 1 {
 		usage()
 	}
@@ -40,12 +39,10 @@ func main() {
 	// Tokenize and parse.
 	input := read_file(filename)
 	tokens = tokenize(input)
-	print_tokens(tokens) // Debug
 	nodes := parse(tokens)
 	globals := sema(nodes)
 	fns := gen_ir(nodes)
 
-	print_irs(fns) // Debug
 	if dump_ir1 {
 		dump_ir(fns)
 	}
@@ -90,6 +87,4 @@ func read_file(filename string) string {
 	return sb_get(sb)
 }
 
-func usage() {
-	error("Usage: 9ccgo [-test] [-dump-ir1] [-dump-ir2] <file>")
-}
+func usage() { error("Usage: 9ccgo [-test] [-dump-ir1] [-dump-ir2] <file>") }

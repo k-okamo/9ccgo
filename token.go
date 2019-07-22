@@ -1,10 +1,5 @@
 package main
 
-// Atomic unit in the grammer is called "token".
-// For example, `123`, `"abc"` and `while` are tokens.
-// The tokenizer splits an inpuit string into tokens.
-// Spaces and comments are removed by the tokenizer.
-
 import (
 	"fmt"
 	"os"
@@ -56,105 +51,9 @@ type Keyword struct {
 	ty   int
 }
 
-func read_char(result *int, s string) string {
-
-	i := 0
-	c := []rune(s)[0]
-	if c != '\\' {
-		*result = int(c)
-		i++
-		c = []rune(s)[i]
-	} else {
-		i++
-		c = []rune(s)[i]
-		if i == len(s) {
-			error("premature end of input")
-		}
-		esc, ok := escaped[c]
-		if ok {
-			*result = esc
-		} else {
-			*result = int(c)
-		}
-		i++
-		c = []rune(s)[i]
-	}
-
-	if c != '\'' {
-		error("unclosed character literal")
-	}
-	i++
-
-	return s[i:]
-}
-
-func read_string(sb *StringBuilder, s string) string {
-	i := 0
-	c := []rune(s)[0]
-	for c != '"' {
-		if i == len(s) {
-			error("premature end of input")
-		}
-
-		if c != '\\' {
-			sb_add(sb, string(c))
-			i++
-			c = []rune(s)[i]
-			continue
-		}
-
-		// c == '\\'
-		i++
-		c = []rune(s)[i]
-		esc, ok := escaped[c]
-		if ok {
-			sb_add(sb, string(esc))
-		} else {
-			sb_add(sb, string(c))
-		}
-		i++
-		c = []rune(s)[i]
-	}
-	return s[(i + 1):]
-}
-
-/*
-func print_line(t *Token) {
-	start := input_file
-	line := 0
-	col := 0
-
-	for i, c := range input_file {
-		if c == '\n' {
-			start = input_file[i+1:]
-			line++
-			col = 0
-
-			continue
-		}
-
-		if start != t.start {
-			col++
-			start = start[1:]
-			continue
-		}
-
-		fmt.Fprintf(os.Stderr, "error at %s:%d:%d\n\n", filename, line+1, col+1)
-
-		linelen := len(strchr(input_file, '\n')) - len(start)
-		fmt.Fprintf(os.Stderr, "%.*s\n", linelen, start)
-		//fmt.Fprintf(os.Stderr, "%s\n", s)
-
-		for i := 0; i < col; i++ {
-			fmt.Fprintf(os.Stderr, " ")
-		}
-		fmt.Fprintf(os.Stderr, "^\n\n")
-		return
-	}
-}
-*/
-
-func print_line(t *Token) {
+// Finds a line pointed by a given pointer from the input line
+// to print it out.
+func print_line(pos string) {
 	curline, start := input_file, input_file
 	line, col := 0, 0
 
@@ -169,7 +68,7 @@ func print_line(t *Token) {
 			continue
 		}
 
-		if start != t.start {
+		if start != pos {
 			col++
 			start = input_file[i+1:]
 			continue
@@ -193,15 +92,20 @@ func print_line(t *Token) {
 }
 
 func bad_token(t *Token, msg string) {
-	print_line(t)
+	print_line(t.start)
 	error(msg)
 }
 
-func add_token(v *Vector, ty int, start string) *Token {
+// Atomic unit in the grammer is called "token".
+// For example, `123`, `"abc"` and `while` are tokens.
+// The tokenizer splits an inpuit string into tokens.
+// Spaces and comments are removed by the tokenizer.
+
+func add_t(ty int, start string) *Token {
 	t := new(Token)
 	t.ty = ty
 	t.start = start
-	vec_push(v, t)
+	vec_push(tokens, t)
 	return t
 }
 
@@ -225,210 +129,194 @@ func keyword_map() *Map {
 	return kmap
 }
 
-func tokenize(s string) *Vector {
-	input_file = s
-	v := new_vec()
-	keywords := keyword_map()
+func block_comment(pos string) string {
+	for s := pos[2:]; len(s) != 0; s = s[1:] {
+		if strncmp(s, "*/", 2) != 0 {
+			return s[2:]
+		}
+	}
+	print_line(pos)
+	error("unclosed comment")
+	return ""
+}
+
+func char_literal(p string) string {
+	t := add_t(TK_NUM, p)
+	p = p[1:]
+
+	if len(p) == 0 {
+		goto err
+	}
+
+	if rune(p[0]) != '\\' {
+		t.val = int(p[0])
+		p = p[1:]
+	} else {
+		if len(p) < 2 {
+			goto err
+		}
+		esc := escaped[rune(p[1])]
+		if esc != 0 {
+			t.val = esc
+		} else {
+			t.val = int(p[1])
+		}
+		p = p[2:]
+	}
+
+	if p[0] == '\'' {
+		return p[1:]
+	}
+
+err:
+	bad_token(t, "unclosed character literal")
+	return ""
+}
+
+func string_literal(p string) string {
+
+	t := add_t(TK_STR, p)
+	p = p[1:]
+	sb := new_sb()
+
+	for rune(p[0]) != '"' {
+		if len(p) == 0 {
+			goto err
+		}
+
+		if p[0] != '\\' {
+			sb_add(sb, string(p[0]))
+			p = p[1:]
+			continue
+		}
+
+		p = p[1:]
+		if len(p) == 0 {
+			goto err
+		}
+		esc := escaped[rune(p[0])]
+		if esc != 0 {
+			sb_add(sb, string(esc))
+		} else {
+			sb_add(sb, p)
+		}
+		p = p[1:]
+	}
+
+	t.str = sb_get(sb)
+	t.len = sb.len
+	return p[1:]
+
+err:
+	bad_token(t, "unclosed string literal")
+	return ""
+}
+
+func ident_t(p string) string {
+	len := 1
+	for isalpha(rune(p[len])) || unicode.IsDigit(rune(p[len])) || p[len] == '_' {
+		len++
+	}
+
+	name := strndup(p, len)
+	ty := map_geti(keywords, name, TK_IDENT)
+	t := add_t(ty, p)
+	t.name = name
+	return p[len:]
+}
+
+func number(p string) string {
+	t := add_t(TK_NUM, p)
+	for unicode.IsDigit(rune(p[0])) {
+		t.val = t.val*10 + int(p[0]) - '0'
+		p = p[1:]
+	}
+	return p
+}
+
+// Tokenized input is stored to this array
+func scan() {
+	p := input_file
 
 loop:
-	for len(s) != 0 {
-		// Skip whitespace
-		c := []rune(s)[0]
+	for len(p) != 0 {
+		c := rune(p[0])
 		if unicode.IsSpace(c) {
-			s = s[1:]
+			p = p[1:]
 			continue
 		}
 
 		// Line comment
-		if strncmp(s, "//", 2) == 0 {
-			i := 0
-			for i != len(s) && c != '\n' {
-				i++
-				c = []rune(s)[i]
+		if strncmp(p, "//", 2) == 0 {
+			for len(p) != 0 && c != '\n' {
+				p = p[1:]
 			}
-			s = s[i:]
 			continue
 		}
 
 		// Block comment
-		if strncmp(s, "/*", 2) == 0 {
-			for s = s[2:]; len(s) != 0; s = s[1:] {
-				if strncmp(s, "*/", 2) != 0 {
-					continue
-				}
-				s = s[2:]
-				continue loop
-			}
-			error("unclosed comment")
+		if strncmp(p, "/*", 2) == 0 {
+			p = block_comment(p)
+			continue
 		}
 
 		// Character literal
 		if c == '\'' {
-			t := add_token(v, TK_NUM, s)
-			s = s[1:]
-			s = read_char(&t.val, s)
+			p = char_literal(p)
 			continue
 		}
 
 		// String literal
 		if c == '"' {
-			t := add_token(v, TK_STR, s)
-			s = s[1:]
-
-			sb := new_sb()
-			s = read_string(sb, s)
-			t.str = sb_get(sb)
-			t.len = sb.len
+			p = string_literal(p)
 			continue
 		}
 
 		// Multi-letter symbol
 		for _, sym := range symbols {
 			length := len(sym.name)
-			if length > len(s) {
-				length = len(s)
+			if length > len(p) {
+				length = len(p)
 			}
-			if strncmp(s, sym.name, length) != 0 {
+			if strncmp(p, sym.name, length) != 0 {
 				continue
 			}
-			add_token(v, sym.ty, s)
-			s = s[length:]
+			add_t(sym.ty, p)
+			p = p[length:]
 			continue loop
 		}
 
 		// Single-letter symbol
 		if strchr("+-*/;=(),{}<>[]&.!?:|^%~", c) != "" {
-			add_token(v, int(c), s)
-			s = s[1:]
+			add_t(int(c), p)
+			p = p[1:]
 			continue
 		}
 
 		// Keyword or identifier
-		if IsAlpha(c) || c == '_' {
-			length := 1
-		LABEL:
-			for {
-				if len(s[length:]) == 0 {
-					break LABEL
-				}
-				c2 := []rune(s)[length]
-				if !IsAlpha(c2) && !unicode.IsDigit(c2) && c2 != '_' {
-					break LABEL
-				}
-				length++
-			}
-
-			name := strndup(s, length)
-			ty := map_geti(keywords, name, -1)
-
-			var t *Token
-			if ty == -1 {
-				t = add_token(v, TK_IDENT, s)
-			} else {
-				t = add_token(v, ty, s)
-			}
-			t.name = strndup(s, length)
-			s = s[length:]
+		if isalpha(c) || c == '_' {
+			p = ident_t(p)
 			continue
 		}
 
 		// Number
 		if unicode.IsDigit(c) {
-			t := add_token(v, TK_NUM, s)
-			i := 0
-			cc := []rune(s)[i]
-			for unicode.IsDigit(cc) {
-				t.val = t.val*10 + (int(cc) - '0')
-				i++
-				cc = []rune(s)[i]
-			}
-			s = s[i:]
+			p = number(p)
 			continue
 		}
 
-		error("cannot tokenize: %s\n", string(c))
+		print_line(p)
+		error("cannot tokenize")
 	}
 
-	add_token(v, TK_EOF, s)
-	return v
+	add_t(TK_EOF, p)
 }
 
-// [Debug] tokens print
-func print_tokens(tokens *Vector) {
-	if !debug {
-		return
-	}
-	fmt.Println("-- tokens info --")
-	for i := 0; i < tokens.len; i++ {
-		t := tokens.data[i].(*Token)
-		ty := ""
-		switch t.ty {
-		case TK_NUM:
-			ty = "TK_NUM   "
-		case TK_STR:
-			ty = "TK_STR   "
-		case TK_IDENT:
-			ty = "TK_IDENT "
-		case TK_INT:
-			ty = "TK_INT   "
-		case TK_CHAR:
-			ty = "TK_CHAR  "
-		case TK_IF:
-			ty = "TK_IF    "
-		case TK_ELSE:
-			ty = "TK_ELSE  "
-		case TK_FOR:
-			ty = "TK_FOR   "
-		case TK_RETURN:
-			ty = "TK_RETURN"
-		case TK_LOGOR:
-			ty = "TK_LOGOR "
-		case TK_LOGAND:
-			ty = "TK_LOGAND"
-		case TK_SIZEOF:
-			ty = "TK_SIZEOF"
-		case TK_STRUCT:
-			ty = "TK_STRUCT"
-		case TK_EOF:
-			ty = "TK_EOF   "
-		case ';':
-			ty = ";        "
-		case '+':
-			ty = "+        "
-		case '-':
-			ty = "-        "
-		case '*':
-			ty = "*        "
-		case '/':
-			ty = "/        "
-		case '=':
-			ty = "=        "
-		case ',':
-			ty = ",        "
-		case '(':
-			ty = "(        "
-		case ')':
-			ty = ")        "
-		case '{':
-			ty = "{        "
-		case '}':
-			ty = "}        "
-		case '[':
-			ty = "[        "
-		case ']':
-			ty = "]        "
-		case '&':
-			ty = "&        "
-		case '<':
-			ty = "<        "
-		case '>':
-			ty = ">        "
-		case '.':
-			ty = ".        "
-		default:
-			ty = "         "
-		}
-		fmt.Printf("[%02d] ty: %s, val: %d, input: %s", i, ty, t.val, t.start)
-	}
-	fmt.Println("")
+func tokenize(p string) *Vector {
+	tokens = new_vec()
+	keywords = keyword_map()
+	input_file = p
+
+	scan()
+	return tokens
 }
