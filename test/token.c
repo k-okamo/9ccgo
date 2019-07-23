@@ -5,11 +5,12 @@
 // tokenize this file or not.
 
 
-// line comment\
-continues
+// a line comment\
+continues\
+to this line
 
 
 /* 
-/* block comment
+/*0block comment
  **
  */

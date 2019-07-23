@@ -313,8 +313,11 @@ loop:
 	add_t(TK_EOF, p)
 }
 
+func canonicalize_newline() {
+	input_file = strings.Replace(input_file, "\r\n", "\n", -1)
+}
+
 func remove_backslash_newline() {
-	//input_file = strings.ReplaceAll(input_file, "\\\n", "")
 	input_file = strings.Replace(input_file, "\\\n", "", -1)
 }
 
@@ -348,6 +351,7 @@ func tokenize(p string) *Vector {
 	keywords = keyword_map()
 	input_file = p
 
+	canonicalize_newline()
 	remove_backslash_newline()
 	scan()
 	join_string_literals()
