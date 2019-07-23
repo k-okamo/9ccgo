@@ -115,7 +115,7 @@ func add_members(ty *Type, members *Vector) {
 	ty.size = roundup(off, ty.align)
 }
 
-func read_type() *Type {
+func decl_specifiers() *Type {
 	t := tokens.data[pos].(*Token)
 	pos++
 
@@ -151,7 +151,7 @@ func read_type() *Type {
 		if consume('{') {
 			members = new_vec()
 			for !consume('}') {
-				vec_push(members, decl())
+				vec_push(members, declaration())
 			}
 		}
 
@@ -177,7 +177,8 @@ func read_type() *Type {
 		}
 		return ty
 	}
-	pos--
+
+	bad_token(t, "typename expected")
 	return nil
 }
 
@@ -539,49 +540,50 @@ func expr() *Node {
 	return new_binop(',', lhs, expr())
 }
 
-func ttype() *Type {
+func direct_decl(ty *Type) *Node {
 	t := tokens.data[pos].(*Token)
-	ty := read_type()
-	if ty == nil {
-		bad_token(t, "typename expected")
+	var node *Node
+	placeholder := new(Type)
+
+	if t.ty == TK_IDENT {
+		node = new(Node)
+		node.op = ND_VARDEF
+		node.ty = placeholder
+		node.name = ident()
+	} else if consume('(') {
+		node = declarator(placeholder)
+		expect(')')
+	} else {
+		bad_token(t, "bad direct-declarator")
 	}
-	for consume('*') {
-		ty = ptr_to(ty)
-	}
-	return ty
-}
-
-func decl() *Node {
-	node := new(Node)
-	node.op = ND_VARDEF
-
-	// Read the first half of type name (e.g. `int *`).
-	node.ty = ttype()
-
-	// Read an identifier.
-	node.name = ident()
 
 	// Read the second half of type name (e.g. `[3][5]`).
-	t := tokens.data[pos].(*Token)
-	node.ty = read_array(node.ty)
-	if node.ty.ty == VOID {
-		bad_token(t, "void variable")
-	}
+	*placeholder = *read_array(ty)
 
 	// Read an initializer.
 	if consume('=') {
 		node.init = assign()
 	}
+	return node
+}
+
+func declarator(ty *Type) *Node {
+	for consume('*') {
+		ty = ptr_to(ty)
+	}
+	return direct_decl(ty)
+}
+
+func declaration() *Node {
+	ty := decl_specifiers()
+	node := declarator(ty)
 	expect(';')
 	return node
 }
 
-func param() *Node {
-	node := new(Node)
-	node.op = ND_VARDEF
-	node.ty = ttype()
-	node.name = ident()
-	return node
+func param_declaration() *Node {
+	ty := decl_specifiers()
+	return declarator(ty)
 }
 
 func expr_stmt() *Node {
@@ -597,7 +599,7 @@ func stmt() *Node {
 
 	switch t.ty {
 	case TK_TYPEDEF:
-		node := decl()
+		node := declaration()
 		// assert(node.name)
 		map_put(penv.typedefs, node.name, node.ty)
 		return &null_stmt
@@ -618,7 +620,7 @@ func stmt() *Node {
 		expect('(')
 
 		if is_typename() {
-			node.init = decl()
+			node.init = declaration()
 		} else if consume(';') {
 			node.init = &null_stmt
 		} else {
@@ -674,7 +676,7 @@ func stmt() *Node {
 	default:
 		pos--
 		if is_typename() {
-			return decl()
+			return declaration()
 		}
 		return expr_stmt()
 	}
@@ -699,11 +701,9 @@ func toplevel() *Node {
 	is_typedef := consume(TK_TYPEDEF)
 	is_extern := consume(TK_EXTERN)
 
-	t := tokens.data[pos].(*Token)
-
-	ty := ttype()
-	if ty == nil {
-		bad_token(t, "typename expected")
+	ty := decl_specifiers()
+	for consume('*') {
+		ty = ptr_to(ty)
 	}
 
 	name := ident()
@@ -717,16 +717,17 @@ func toplevel() *Node {
 		node.args = new_vec()
 
 		if !consume(')') {
-			vec_push(node.args, param())
+			vec_push(node.args, param_declaration())
 			for consume(',') {
-				vec_push(node.args, param())
+				vec_push(node.args, param_declaration())
 			}
 			expect(')')
 		}
 
+		t := tokens.data[pos].(*Token)
 		expect('{')
 		if is_typedef {
-			bad_token(t, "typedef %s has function definition")
+			bad_token(t, "typedef has function definition")
 		}
 		node.body = compound_stmt()
 		return node
