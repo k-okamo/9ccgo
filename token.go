@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"unicode"
 )
 
@@ -198,7 +199,7 @@ func string_literal(p string) string {
 		if esc != 0 {
 			sb_add(sb, string(esc))
 		} else {
-			sb_add(sb, p)
+			sb_add(sb, string(p[0]))
 		}
 		p = p[1:]
 	}
@@ -312,11 +313,42 @@ loop:
 	add_t(TK_EOF, p)
 }
 
+func remove_backslash_newline() {
+	//input_file = strings.ReplaceAll(input_file, "\\\n", "")
+	input_file = strings.Replace(input_file, "\\\n", "", -1)
+}
+
+func append_t(x, y *Token) {
+	sb := new_sb()
+	sb_append_n(sb, x.str, x.len)
+	sb_append_n(sb, y.str, y.len)
+	x.str = sb_get(sb)
+	x.len = sb.len
+}
+
+func join_string_literals() {
+	v := new_vec()
+	var last *Token
+
+	for i := 0; i < tokens.len; i++ {
+		t := tokens.data[i].(*Token)
+		if last != nil && last.ty == TK_STR && t.ty == TK_STR {
+			append_t(last, t)
+			continue
+		}
+
+		last = t
+		vec_push(v, t)
+	}
+	tokens = v
+}
+
 func tokenize(p string) *Vector {
 	tokens = new_vec()
 	keywords = keyword_map()
 	input_file = p
 
 	scan()
+	join_string_literals()
 	return tokens
 }
