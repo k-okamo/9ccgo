@@ -252,17 +252,36 @@ func hexadecimal(p string) string {
 	return ""
 }
 
-func number(p string) string {
-	if strncasecmp(p, "0X", 2) == 0 {
-		return hexadecimal(p)
-	}
+func octal(p string) string {
+	t := add_t(TK_NUM, p)
+	p = p[1:]
 
+	c := p[0]
+	for '0' <= c && c <= '7' {
+		t.val = t.val*8 + int(c) - '0'
+		p = p[1:]
+		c = p[0]
+	}
+	return p
+}
+
+func decimal(p string) string {
 	t := add_t(TK_NUM, p)
 	for unicode.IsDigit(rune(p[0])) {
 		t.val = t.val*10 + int(p[0]) - '0'
 		p = p[1:]
 	}
 	return p
+}
+
+func number(p string) string {
+	if strncasecmp(p, "0x", 2) == 0 {
+		return hexadecimal(p)
+	}
+	if p[0] == '0' {
+		return octal(p)
+	}
+	return decimal(p)
 }
 
 // Tokenized input is stored to this array
