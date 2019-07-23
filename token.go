@@ -348,6 +348,7 @@ func tokenize(p string) *Vector {
 	keywords = keyword_map()
 	input_file = p
 
+	remove_backslash_newline()
 	scan()
 	join_string_literals()
 	return tokens
