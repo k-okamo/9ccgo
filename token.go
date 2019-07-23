@@ -226,7 +226,37 @@ func ident_t(p string) string {
 	return p[len:]
 }
 
+func hexadecimal(p string) string {
+	t := add_t(TK_NUM, p)
+	p = p[2:]
+
+	if !isxdigit(string(p[0])) {
+		bad_token(t, "bad hexadecimal number")
+	}
+
+	for {
+		c := int(p[0])
+		if '0' <= c && c <= '9' {
+			t.val = t.val*16 + c - '0'
+			p = p[1:]
+		} else if 'a' <= c && c <= 'f' {
+			t.val = t.val*16 + c - 'a' + 10
+			p = p[1:]
+		} else if 'A' <= c && c <= 'F' {
+			t.val = t.val*16 + c - 'A' + 10
+			p = p[1:]
+		} else {
+			return p
+		}
+	}
+	return ""
+}
+
 func number(p string) string {
+	if strncasecmp(p, "0X", 2) == 0 {
+		return hexadecimal(p)
+	}
+
 	t := add_t(TK_NUM, p)
 	for unicode.IsDigit(rune(p[0])) {
 		t.val = t.val*10 + int(p[0]) - '0'

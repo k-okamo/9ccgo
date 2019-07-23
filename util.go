@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"unicode"
 	"unsafe"
 )
@@ -300,6 +301,10 @@ func strncmp(s1, s2 string, n int) int {
 	return strncmp(s1[1:], s2[1:], n-1)
 }
 
+func strncasecmp(s1, s2 string, n int) int {
+	return strncmp(strings.ToUpper(s1), strings.ToUpper(s2), n)
+}
+
 func isgraph(c rune) bool {
 	return 0x21 <= c && c <= 0x7e
 }
@@ -310,6 +315,11 @@ func isprint(c rune) bool {
 
 func isalpha(c rune) bool {
 	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+}
+
+func isxdigit(s string) bool {
+	_, err := strconv.ParseInt(s, 16, 64)
+	return err == nil
 }
 
 // Testing
