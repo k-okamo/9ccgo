@@ -270,7 +270,7 @@ func walk(node *Node, decay bool) *Node {
 		}
 
 		node.ty = node.expr.ty.ptr_to
-		return node
+		return maybe_decay(node, decay)
 	case ND_RETURN, ND_EXPR_STMT:
 		node.expr = walk(node.expr, true)
 		return node

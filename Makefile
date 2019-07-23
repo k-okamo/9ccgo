@@ -11,7 +11,7 @@ test: 9ccgo test/test.c
 
 	@gcc -E -P test/test.c | ./9ccgo - > tmp-test1.s
 	@./9ccgo test/token.c > tmp-test2.s
-	@echo 'int global_arr[1] = {5};' | gcc -xc -c -o tmp-test2.o -
+	@gcc -c -o tmp-test2.o test/gcc.c
 	@gcc -static -o tmp-test tmp-test1.s tmp-test2.s tmp-test2.o
 	./tmp-test
 
