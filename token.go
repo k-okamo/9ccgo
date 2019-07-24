@@ -300,6 +300,7 @@ loop:
 		if strncmp(p, "//", 2) == 0 {
 			for len(p) != 0 && c != '\n' {
 				p = p[1:]
+				c = rune(p[0])
 			}
 			continue
 		}
