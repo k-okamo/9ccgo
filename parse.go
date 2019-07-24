@@ -357,18 +357,24 @@ func mul() *Node {
 
 func read_array(ty *Type) *Type {
 	v := new_vec()
+
 	for consume('[') {
+		if consume(']') {
+			vec_push(v, -1)
+			continue
+		}
+
 		t := tokens.data[pos].(*Token)
 		l := expr()
 		if l.op != ND_NUM {
 			bad_token(t, "number expected")
 		}
-		vec_push(v, l)
+		vec_push(v, l.val)
 		expect(']')
 	}
 	for i := v.len - 1; i >= 0; i-- {
-		l := v.data[i].(*Node)
-		ty = ary_of(ty, l.val)
+		l := v.data[i].(int)
+		ty = ary_of(ty, l)
 	}
 	return ty
 }
@@ -583,7 +589,11 @@ func declaration() *Node {
 
 func param_declaration() *Node {
 	ty := decl_specifiers()
-	return declarator(ty)
+	node := declarator(ty)
+	if node.ty.ty == ARY {
+		node.ty = ptr_to(node.ty.ary_of)
+	}
+	return node
 }
 
 func expr_stmt() *Node {
