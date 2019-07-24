@@ -24,8 +24,8 @@ type StringBuilder struct {
 
 type Type struct {
 	ty    int
-	size  int
-	align int
+	size  int // sizeof
+	align int // alignof
 
 	// Pointer
 	ptr_to *Type
@@ -37,6 +37,9 @@ type Type struct {
 	// Struct
 	members *Vector
 	offset  int
+
+	// Function
+	returning *Type
 }
 
 // token.go
@@ -104,6 +107,7 @@ const (
 	ND_STR                    // String literal
 	ND_IDENT                  // Identigier
 	ND_STRUCT                 // Struct
+	ND_DECL                   // declaration
 	ND_VARDEF                 // Variable definition
 	ND_LVAR                   // Local variable reference
 	ND_GVAR                   // Global variable reference
@@ -153,6 +157,7 @@ const (
 	PTR
 	ARY
 	STRUCT
+	FUNC
 )
 
 type Node struct {

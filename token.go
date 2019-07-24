@@ -132,7 +132,7 @@ func keyword_map() *Map {
 
 func block_comment(pos string) string {
 	for s := pos[2:]; len(s) != 0; s = s[1:] {
-		if strncmp(s, "*/", 2) != 0 {
+		if strncmp(s, "*/", 2) == 0 {
 			return s[2:]
 		}
 	}

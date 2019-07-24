@@ -721,10 +721,12 @@ func toplevel() *Node {
 	// Function
 	if consume('(') {
 		node := new(Node)
-		node.op = ND_FUNC
-		node.ty = ty
 		node.name = name
 		node.args = new_vec()
+
+		node.ty = new(Type)
+		node.ty.ty = FUNC
+		node.ty.returning = ty
 
 		if !consume(')') {
 			vec_push(node.args, param_declaration())
@@ -734,6 +736,12 @@ func toplevel() *Node {
 			expect(')')
 		}
 
+		if consume(';') {
+			node.op = ND_DECL
+			return node
+		}
+
+		node.op = ND_FUNC
 		t := tokens.data[pos].(*Token)
 		expect('{')
 		if is_typedef {

@@ -20,6 +20,11 @@ package main
 //
 // - Reject bad assignments, such as `1=2+3`.
 
+import (
+	"fmt"
+	"os"
+)
+
 var (
 	globals   *Vector
 	stacksize int
@@ -285,11 +290,20 @@ func walk(node *Node, decay bool) *Node {
 			return new_int(expr.ty.align)
 		}
 	case ND_CALL:
-		for i := 0; i < node.args.len; i++ {
-			node.args.data[i] = walk(node.args.data[i].(*Node), true)
+		{
+			v := find_var(node.name)
+			if v != nil && v.ty.ty == FUNC {
+				node.ty = v.ty.returning
+			} else {
+				fmt.Fprintf(os.Stderr, "bad function: %s\n", node.name)
+				node.ty = &int_ty
+			}
+
+			for i := 0; i < node.args.len; i++ {
+				node.args.data[i] = walk(node.args.data[i].(*Node), true)
+			}
+			return node
 		}
-		node.ty = &int_ty
-		return node
 	case ND_COMP_STMT:
 		{
 			env = new_env(env)
@@ -324,7 +338,15 @@ func sema(nodes *Vector) *Vector {
 			continue
 		}
 
-		//assert(node.op == ND_FUNC)
+		//assert(node.op == ND_FUNC || node.op == ND_FUNC)
+
+		v := new_global(node.ty, node.name, "", 0)
+		map_put(env.vars, node.name, v)
+
+		if node.op == ND_DECL {
+			continue
+		}
+
 		stacksize = 0
 
 		for i := 0; i < node.args.len; i++ {
