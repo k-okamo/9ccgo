@@ -3,86 +3,108 @@ package main
 // C preprocessor
 
 var (
-	defined *Map
+	macros *Map
+	ctx_p  *Context_p
 )
 
-func append_p(v1, v2 *Vector) {
-	for i := 0; i < v2.len; i++ {
-		vec_push(v1, v2.data[i])
+type Context_p struct {
+	input  *Vector
+	output *Vector
+	pos    int
+	next   *Context_p
+}
+
+func new_ctx_p(next *Context_p, input *Vector) *Context_p {
+	c := new(Context_p)
+	c.input = input
+	c.output = new_vec()
+	c.next = next
+	return c
+}
+
+func append_p(v *Vector) {
+	for i := 0; i < v.len; i++ {
+		vec_push(ctx_p.output, v.data[i])
 	}
 }
 
-func preprocess(tokens *Vector) *Vector {
-	if defined == nil {
-		defined = new_map()
+func add_p(t *Token) { vec_push(ctx_p.output, t) }
+
+func next() *Token {
+	// assert(ctx_p,pos < ctx_p.input.len)
+	t := ctx_p.input.data[ctx_p.pos].(*Token)
+	ctx_p.pos++
+	return t
+}
+
+func eof() bool { return ctx_p.pos == ctx_p.input.len }
+
+func get(ty int, msg string) *Token {
+	t := next()
+	if t.ty != ty {
+		bad_token(t, msg)
 	}
+	return t
+}
+
+func define() {
+	t := get(TK_IDENT, "macro name expected")
+	name := t.name
 
 	v := new_vec()
+	for !eof() {
+		t = next()
+		if t.ty == '\n' {
+			break
+		}
+		vec_push(v, t)
+	}
+	map_put(macros, name, v)
+}
 
-	for i := 0; i < tokens.len; {
-		t := tokens.data[i].(*Token)
-		i++
+func include() {
+	t := get(TK_STR, "string expected")
+	path := t.str
+	get('\n', "newline expected")
+	append_p(tokenize(path, false))
+}
+
+func preprocess(tokens *Vector) *Vector {
+	if macros == nil {
+		macros = new_map()
+	}
+	ctx_p = new_ctx_p(ctx_p, tokens)
+
+	for !eof() {
+		t := next()
 
 		if t.ty == TK_IDENT {
-			macro := map_get(defined, t.name)
+			macro := map_get(macros, t.name)
 			if macro != nil {
-				append_p(v, macro.(*Vector))
+				append_p(macro.(*Vector))
 			} else {
-				vec_push(v, t)
+				add_p(t)
 			}
 			continue
 		}
 
 		if t.ty != '#' {
-			vec_push(v, t)
+			add_p(t)
 			continue
 		}
 
-		t = tokens.data[i].(*Token)
-		i++
-		if t.ty != TK_IDENT {
-			bad_token(t, "identifier expected")
-		}
+		t = get(TK_IDENT, "identifier expected")
 
 		if strcmp(t.name, "define") == 0 {
-			t = tokens.data[i].(*Token)
-			i++
-			if t.ty != TK_IDENT {
-				bad_token(t, "macro name expected")
-			}
-			name := t.name
-
-			v2 := new_vec()
-			for i < tokens.len {
-				t = tokens.data[i].(*Token)
-				i++
-				if t.ty == '\n' {
-					break
-				}
-				vec_push(v2, t)
-			}
-
-			map_put(defined, name, v2)
-			continue
-		}
-
-		if strcmp(t.name, "include") == 0 {
-			t = tokens.data[i].(*Token)
-			i++
-			if t.ty != TK_STR {
-				bad_token(t, "string expected")
-			}
-
-			path := t.str
-
-			t = tokens.data[i].(*Token)
-			i++
-			if t.ty != '\n' {
-				bad_token(t, "newline expected")
-			}
-			append_p(v, tokenize(path, false))
-			continue
+			define()
+		} else if strcmp(t.name, "include") == 0 {
+			include()
+		} else {
+			bad_token(t, "unknown directive")
 		}
 	}
+
+	v := ctx_p.output
+	ctx_p = ctx_p.next
 	return v
 }
