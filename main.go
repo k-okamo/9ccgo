@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Tokenize and parse.
-	tokens = tokenize(path, true)
+	tokens := tokenize(path, true)
 	nodes := parse(tokens)
 	globals := sema(nodes)
 	fns := gen_ir(nodes)

@@ -12,8 +12,8 @@ var (
 	input_file string
 	buf        string
 	filename   string
-	tokens     *Vector
 	keywords   *Map
+	ctx        *Context
 	symbols    = []Keyword{
 		{name: "<<=", ty: TK_SHL_EQ},
 		{name: ">>=", ty: TK_SHR_EQ},
@@ -55,6 +55,14 @@ type Keyword struct {
 	ty   int
 }
 
+type Context struct {
+	path   string
+	buf    string
+	pos    string
+	tokens *Vector
+	next   *Context
+}
+
 func read_file(path string) string {
 	f := os.Stdin
 	if path != "-" {
@@ -87,25 +95,37 @@ func read_file(path string) string {
 	return sb_get(sb)
 }
 
+func new_ctx(next *Context, path, buf string) *Context {
+	ctx := new(Context)
+	ctx.path = path
+	ctx.buf = buf
+	ctx.pos = ctx.buf
+	ctx.tokens = new_vec()
+	ctx.next = next
+	return ctx
+}
+
+// Error reporting
+
 // Finds a line pointed by a given pointer from the input line
 // to print it out.
-func print_line(start, path, pos string) {
-	curline, s := start, start
+func print_line(buf, path, pos string) {
+	curline, s := buf, buf
 	line, col := 0, 0
 
-	for i, c := range start {
+	for i, c := range buf {
 
 		if c == '\n' {
-			curline = start[i+1:]
+			curline = buf[i+1:]
 			line++
 			col = 0
-			s = start[i+1:]
+			s = buf[i+1:]
 			continue
 		}
 
 		if s != pos {
 			col++
-			s = start[i+1:]
+			s = buf[i+1:]
 			continue
 		}
 
@@ -126,48 +146,8 @@ func print_line(start, path, pos string) {
 	}
 }
 
-/*
-func print_line(pos string) {
-	curline, start := input_file, input_file
-	line, col := 0, 0
-
-	for i, c := range input_file {
-
-		if c == '\n' {
-			curline = input_file[i+1:]
-			line++
-			col = 0
-			//start = start[i:]
-			start = input_file[i+1:]
-			continue
-		}
-
-		if start != pos {
-			col++
-			start = input_file[i+1:]
-			continue
-		}
-
-		fmt.Fprintf(os.Stderr, "error at %s:%d:%d\n\n", filename, line+1, col+1)
-		for i, c2 := range curline {
-			if c2 == '\n' {
-				curline = curline[:i]
-				break
-			}
-		}
-		fmt.Fprintf(os.Stderr, "%s\n", curline)
-
-		for i := 0; i < col-1; i++ {
-			fmt.Fprintf(os.Stderr, " ")
-		}
-		fmt.Fprintf(os.Stderr, "^\n\n")
-		return
-	}
-}
-*/
-
 func bad_token(t *Token, msg string) {
-	print_line(t.buf, t.filename, t.start)
+	print_line(t.buf, t.path, t.start)
 	error(msg)
 }
 
@@ -180,9 +160,9 @@ func add_t(ty int, start string) *Token {
 	t := new(Token)
 	t.ty = ty
 	t.start = start
-	t.filename = filename
-	t.buf = buf
-	vec_push(tokens, t)
+	t.path = ctx.path
+	t.buf = ctx.buf
+	vec_push(ctx.tokens, t)
 	return t
 }
 
@@ -440,20 +420,20 @@ loop:
 			continue
 		}
 
-		print_line(buf, filename, p)
+		print_line(ctx.buf, ctx.path, p)
 		error("cannot tokenize")
 	}
 }
 
-func canonicalize_newline() {
-	buf = strings.Replace(buf, "\r\n", "\n", -1)
+func canonicalize_newline(p string) string {
+	return strings.Replace(p, "\r\n", "\n", -1)
 }
 
-func remove_backslash_newline() {
-	buf = strings.Replace(buf, "\\\n", "", -1)
+func remove_backslash_newline(p string) string {
+	return strings.Replace(p, "\\\n", "", -1)
 }
 
-func strip_newlines() {
+func strip_newline_tokens(tokens *Vector) *Vector {
 	v := new_vec()
 	for i := 0; i < tokens.len; i++ {
 		t := tokens.data[i].(*Token)
@@ -461,7 +441,7 @@ func strip_newlines() {
 			vec_push(v, t)
 		}
 	}
-	tokens = v
+	return v
 }
 
 func append_t(x, y *Token) {
@@ -472,7 +452,7 @@ func append_t(x, y *Token) {
 	x.len = sb.len
 }
 
-func join_string_literals() {
+func join_string_literals(tokens *Vector) *Vector {
 	v := new_vec()
 	var last *Token
 
@@ -486,7 +466,7 @@ func join_string_literals() {
 		last = t
 		vec_push(v, t)
 	}
-	tokens = v
+	return v
 }
 
 func tokenize(path string, add_eof bool) *Vector {
@@ -494,29 +474,20 @@ func tokenize(path string, add_eof bool) *Vector {
 		keywords = keyword_map()
 	}
 
-	tokens_ := tokens
-	filename_ := filename
-	buf_ := buf
-
-	tokens = new_vec()
-	filename = path
 	buf = read_file(path)
+	buf = canonicalize_newline(buf)
+	buf = remove_backslash_newline(buf)
 
-	canonicalize_newline()
-	remove_backslash_newline()
-
+	ctx = new_ctx(ctx, path, buf)
 	scan()
 	if add_eof {
-		add_t(TK_EOF, buf)
+		add_t(TK_EOF, "")
 	}
 
-	tokens = preprocess(tokens)
-	strip_newlines()
-	join_string_literals()
+	v := ctx.tokens
+	ctx = ctx.next
 
-	ret := tokens
-	buf = buf_
-	tokens = tokens_
-	filename = filename_
-	return ret
+	v = preprocess(v)
+	v = strip_newline_tokens(v)
+	return join_string_literals(v)
 }

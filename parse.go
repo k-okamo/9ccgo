@@ -11,6 +11,7 @@ package main
 var (
 	pos        = 0
 	penv       *PEnv
+	tokens     *Vector
 	int_ty     = Type{ty: INT, size: 4, align: 4}
 	null_stmt  = Node{op: ND_NULL}
 	break_stmt = Node{op: ND_BREAK}
