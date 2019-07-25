@@ -11,10 +11,6 @@ package main
 // Such infinite number of registers are mapped to a finite registers
 // in a later pass.
 
-import (
-	"fmt"
-)
-
 var (
 	code         *Vector
 	nreg         = 1
@@ -525,59 +521,4 @@ func gen_ir(nodes *Vector) *Vector {
 		vec_push(v, fn)
 	}
 	return v
-}
-
-// [Debug] intermediate reprensations
-func print_irs(fns *Vector) {
-	if !debug {
-		return
-	}
-	fmt.Println("-- intermediate reprensetations --")
-	for i := 0; i < fns.len; i++ {
-		fn := fns.data[i].(*Function)
-		for j := 0; j < fn.ir.len; j++ {
-			ir := fn.ir.data[j].(*IR)
-			op := ""
-			switch ir.op {
-			case IR_IMM:
-				op = "IR_IMM      "
-			case IR_BPREL:
-				op = "IR_BPREL    "
-			case IR_MOV:
-				op = "IR_MOV      "
-			case IR_RETURN:
-				op = "IR_RETURN   "
-			case IR_LABEL:
-				op = "IR_LABEL    "
-			case IR_LT:
-				op = "IR_LT       "
-			case IR_JMP:
-				op = "IR_JMP      "
-			case IR_UNLESS:
-				op = "IR_UNLESS   "
-			case IR_LOAD:
-				op = "IR_LOAD     "
-			case IR_STORE:
-				op = "IR_STORE    "
-			case IR_STORE_ARG:
-				op = "IR_STORE_ARG"
-			case IR_KILL:
-				op = "IR_KILL     "
-			case IR_NOP:
-				op = "IR_NOP      "
-			case IR_ADD:
-				op = "IR_ADD      "
-			case IR_SUB:
-				op = "IR_SUB      "
-			case IR_MUL:
-				op = "IR_MUL      "
-			case IR_DIV:
-				op = "IR_DIV      "
-			default:
-				op = "            "
-			}
-			fmt.Printf("[%02d:%02d] op: %s, lhs: %d, rhs: %d\n", i, j, op, ir.lhs, ir.rhs)
-		}
-	}
-	fmt.Println("")
 }

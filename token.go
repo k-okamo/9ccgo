@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"unicode"
@@ -9,6 +10,8 @@ import (
 
 var (
 	input_file string
+	buf        string
+	filename   string
 	tokens     *Vector
 	keywords   *Map
 	symbols    = []Keyword{
@@ -52,8 +55,78 @@ type Keyword struct {
 	ty   int
 }
 
+func read_file(path string) string {
+	f := os.Stdin
+	if path != "-" {
+		f2, err := os.Open(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		f = f2
+		defer f2.Close()
+	}
+	defer f.Close()
+
+	sb := new_sb()
+	buf := make([]byte, 4096)
+	for {
+		n, err := f.Read(buf)
+		if n == 0 {
+			break
+		}
+		if err != nil {
+			break
+		}
+		sb_append_n(sb, string(buf[:n]), n)
+
+	}
+
+	if sb.data[sb.len-1] != '\n' {
+		sb_add(sb, "\n")
+	}
+	return sb_get(sb)
+}
+
 // Finds a line pointed by a given pointer from the input line
 // to print it out.
+func print_line(start, path, pos string) {
+	curline, s := start, start
+	line, col := 0, 0
+
+	for i, c := range start {
+
+		if c == '\n' {
+			curline = start[i+1:]
+			line++
+			col = 0
+			s = start[i+1:]
+			continue
+		}
+
+		if s != pos {
+			col++
+			s = start[i+1:]
+			continue
+		}
+
+		fmt.Fprintf(os.Stderr, "error at %s:%d:%d\n\n", path, line+1, col+1)
+		for i, c2 := range curline {
+			if c2 == '\n' {
+				curline = curline[:i]
+				break
+			}
+		}
+		fmt.Fprintf(os.Stderr, "%s\n", curline)
+
+		for i := 0; i < col-1; i++ {
+			fmt.Fprintf(os.Stderr, " ")
+		}
+		fmt.Fprintf(os.Stderr, "^\n\n")
+		return
+	}
+}
+
+/*
 func print_line(pos string) {
 	curline, start := input_file, input_file
 	line, col := 0, 0
@@ -91,9 +164,10 @@ func print_line(pos string) {
 		return
 	}
 }
+*/
 
 func bad_token(t *Token, msg string) {
-	print_line(t.start)
+	print_line(t.buf, t.filename, t.start)
 	error(msg)
 }
 
@@ -106,6 +180,8 @@ func add_t(ty int, start string) *Token {
 	t := new(Token)
 	t.ty = ty
 	t.start = start
+	t.filename = filename
+	t.buf = buf
 	vec_push(tokens, t)
 	return t
 }
@@ -136,7 +212,7 @@ func block_comment(pos string) string {
 			return s[2:]
 		}
 	}
-	print_line(pos)
+	print_line(buf, filename, pos)
 	error("unclosed comment")
 	return ""
 }
@@ -286,11 +362,19 @@ func number(p string) string {
 
 // Tokenized input is stored to this array
 func scan() {
-	p := input_file
+	p := buf
 
 loop:
 	for len(p) != 0 {
 		c := rune(p[0])
+		// New line (preprocessor-only token)
+		if c == '\n' {
+			add_t(int(c), p)
+			p = p[1:]
+			continue
+		}
+
+		// Whitespace
 		if unicode.IsSpace(c) {
 			p = p[1:]
 			continue
@@ -338,7 +422,7 @@ loop:
 		}
 
 		// Single-letter symbol
-		if strchr("+-*/;=(),{}<>[]&.!?:|^%~", c) != "" {
+		if strchr("+-*/;=(),{}<>[]&.!?:|^%~#", c) != "" {
 			add_t(int(c), p)
 			p = p[1:]
 			continue
@@ -356,19 +440,28 @@ loop:
 			continue
 		}
 
-		print_line(p)
+		print_line(buf, filename, p)
 		error("cannot tokenize")
 	}
-
-	add_t(TK_EOF, p)
 }
 
 func canonicalize_newline() {
-	input_file = strings.Replace(input_file, "\r\n", "\n", -1)
+	buf = strings.Replace(buf, "\r\n", "\n", -1)
 }
 
 func remove_backslash_newline() {
-	input_file = strings.Replace(input_file, "\\\n", "", -1)
+	buf = strings.Replace(buf, "\\\n", "", -1)
+}
+
+func strip_newlines() {
+	v := new_vec()
+	for i := 0; i < tokens.len; i++ {
+		t := tokens.data[i].(*Token)
+		if t.ty != '\n' {
+			vec_push(v, t)
+		}
+	}
+	tokens = v
 }
 
 func append_t(x, y *Token) {
@@ -396,14 +489,34 @@ func join_string_literals() {
 	tokens = v
 }
 
-func tokenize(p string) *Vector {
+func tokenize(path string, add_eof bool) *Vector {
+	if keywords == nil {
+		keywords = keyword_map()
+	}
+
+	tokens_ := tokens
+	filename_ := filename
+	buf_ := buf
+
 	tokens = new_vec()
-	keywords = keyword_map()
-	input_file = p
+	filename = path
+	buf = read_file(path)
 
 	canonicalize_newline()
 	remove_backslash_newline()
+
 	scan()
+	if add_eof {
+		add_t(TK_EOF, buf)
+	}
+
+	tokens = preprocess(tokens)
+	strip_newlines()
 	join_string_literals()
-	return tokens
+
+	ret := tokens
+	buf = buf_
+	tokens = tokens_
+	filename = filename_
+	return ret
 }

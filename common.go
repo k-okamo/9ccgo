@@ -98,7 +98,9 @@ type Token struct {
 	len int
 
 	// For error reporting
-	start string
+	buf      string
+	filename string
+	start    string
 }
 
 // parse.go

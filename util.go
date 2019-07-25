@@ -284,6 +284,15 @@ func strndup(s string, size int) string {
 	return s[:size]
 }
 
+func strcmp(s1, s2 string) int {
+	if len(s1) > len(s2) {
+		return 1
+	} else if len(s1) < len(s2) {
+		return -1
+	}
+	return strncmp(s1, s2, len(s1))
+}
+
 func strncmp(s1, s2 string, n int) int {
 	if n == 0 || s1 == s2 {
 		return 0
