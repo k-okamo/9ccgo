@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -151,6 +152,11 @@ func bad_token(t *Token, msg string) {
 	error(msg)
 }
 
+func tokstr(t *Token) string {
+	// assert(t.start && t.end)
+	return strndup(t.start, len(t.end)-len(t.start))
+}
+
 // Atomic unit in the grammer is called "token".
 // For example, `123`, `"abc"` and `while` are tokens.
 // The tokenizer splits an inpuit string into tokens.
@@ -221,9 +227,11 @@ func char_literal(p string) string {
 		p = p[2:]
 	}
 
-	if p[0] == '\'' {
-		return p[1:]
+	if p[0] != '\'' {
+		goto err
 	}
+	t.end = p[1:]
+	return p[1:]
 
 err:
 	bad_token(t, "unclosed character literal")
@@ -262,6 +270,7 @@ func string_literal(p string) string {
 
 	t.str = sb_get(sb)
 	t.len = sb.len
+	t.end = p[1:]
 	return p[1:]
 
 err:
@@ -279,6 +288,7 @@ func ident_t(p string) string {
 	ty := map_geti(keywords, name, TK_IDENT)
 	t := add_t(ty, p)
 	t.name = name
+	t.end = p[len:]
 	return p[len:]
 }
 
@@ -302,6 +312,7 @@ func hexadecimal(p string) string {
 			t.val = t.val*16 + c - 'A' + 10
 			p = p[1:]
 		} else {
+			t.end = p
 			return p
 		}
 	}
@@ -318,6 +329,7 @@ func octal(p string) string {
 		p = p[1:]
 		c = p[0]
 	}
+	t.end = p
 	return p
 }
 
@@ -396,15 +408,17 @@ loop:
 			if strncmp(p, sym.name, length) != 0 {
 				continue
 			}
-			add_t(sym.ty, p)
+			t := add_t(sym.ty, p)
 			p = p[length:]
+			t.end = p
 			continue loop
 		}
 
 		// Single-letter symbol
 		if strchr("+-*/;=(),{}<>[]&.!?:|^%~#", c) != "" {
-			add_t(int(c), p)
+			t := add_t(int(c), p)
 			p = p[1:]
+			t.end = p
 			continue
 		}
 
@@ -490,4 +504,70 @@ func tokenize(path string, add_eof bool) *Vector {
 	v = preprocess(v)
 	v = strip_newline_tokens(v)
 	return join_string_literals(v)
+}
+
+// debug
+func print_tokens(tokens *Vector) {
+	m := map[int]string{
+		TK_NUM:       "TK_NUM      ",
+		TK_STR:       "TK_STR      ",
+		TK_IDENT:     "TK_IDENT    ",
+		TK_ARROW:     "TK_ARROW    ",
+		TK_EXTERN:    "TK_EXTERN   ",
+		TK_TYPEDEF:   "TK_TYPEDEF  ",
+		TK_INT:       "TK_INT      ",
+		TK_CHAR:      "TK_CHAR     ",
+		TK_VOID:      "TK_VOID     ",
+		TK_STRUCT:    "TK_STRUCT   ",
+		TK_IF:        "TK_IF       ",
+		TK_ELSE:      "TK_ELSE     ",
+		TK_FOR:       "TK_FOR      ",
+		TK_DO:        "TK_DO       ",
+		TK_WHILE:     "TK_WHILE    ",
+		TK_BREAK:     "TK_BREAK    ",
+		TK_EQ:        "TK_EQ       ",
+		TK_NE:        "TK_NE       ",
+		TK_LE:        "TK_LE       ",
+		TK_GE:        "TK_GE       ",
+		TK_LOGOR:     "TK_LOGOR    ",
+		TK_LOGAND:    "TK_LOGAND   ",
+		TK_SHL:       "TK_SHL      ",
+		TK_SHR:       "TK_SHR      ",
+		TK_INC:       "TK_INC      ",
+		TK_DEC:       "TK_DEC      ",
+		TK_MUL_EQ:    "TK_MUL_EQ   ",
+		TK_DIV_EQ:    "TK_DIV_EQ   ",
+		TK_MOD_EQ:    "TK_MOD_EQ   ",
+		TK_ADD_EQ:    "TK_ADD_EQ   ",
+		TK_SUB_EQ:    "TK_SUB_EQ   ",
+		TK_SHL_EQ:    "TK_SHL_EQ   ",
+		TK_SHR_EQ:    "TK_SHR_EQ   ",
+		TK_BITAND_EQ: "TK_BITAND_EQ",
+		TK_XOR_EQ:    "TK_XOR_EQ   ",
+		TK_BITOR_EQ:  "TK_BITOR_EQ ",
+		TK_RETURN:    "TK_RETURN   ",
+		TK_SIZEOF:    "TK_SIZEOF   ",
+		TK_ALIGNOF:   "TK_ALIGNOF  ",
+		TK_PARAM:     "TK_PARAM    ",
+		TK_EOF:       "TK_EOF      ",
+	}
+	for i := 0; i < tokens.len; i++ {
+		t := tokens.data[i].(*Token)
+		s, ok := m[t.ty]
+		if !ok {
+			if t.ty != '\n' {
+				s = fmt.Sprintf("%c           ", t.ty)
+			} else {
+				s = "[LF]         "
+			}
+		}
+		val := ""
+		if t.ty == TK_NUM {
+			val = strconv.Itoa(t.val)
+		} else {
+			val = t.name
+		}
+		fmt.Printf("[%03d] %s %s\n", i+1, s, val)
+	}
+	fmt.Println()
 }

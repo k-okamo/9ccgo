@@ -84,6 +84,7 @@ const (
 	TK_RETURN                 // "return"
 	TK_SIZEOF                 // "sizeof"
 	TK_ALIGNOF                // "_Alignof"
+	TK_PARAM                  // Function-like macro parameter
 	TK_EOF                    // End marker
 )
 
@@ -97,10 +98,14 @@ type Token struct {
 	str string
 	len int
 
+	// For preprocessor
+	stringize bool
+
 	// For error reporting
 	buf   string
 	path  string
 	start string
+	end   string
 }
 
 // parse.go

@@ -267,7 +267,7 @@ func primary() *Node {
 		return node
 	}
 
-	bad_token(t, "primery expression expected")
+	bad_token(t, "primary expression expected")
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 
 func main() {
 
+	debug := false
 	if len(os.Args) == 1 {
 		usage()
 	}
@@ -33,6 +34,9 @@ func main() {
 
 	// Tokenize and parse.
 	tokens := tokenize(path, true)
+	if debug {
+		print_tokens(tokens)
+	}
 	nodes := parse(tokens)
 	globals := sema(nodes)
 	fns := gen_ir(nodes)
