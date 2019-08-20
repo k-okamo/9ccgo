@@ -154,7 +154,17 @@ func bad_token(t *Token, msg string) {
 
 func tokstr(t *Token) string {
 	// assert(t.start && t.end)
-	return strndup(t.start, len(t.end)-len(t.start))
+	return strndup(t.start, len(t.start)-len(t.end))
+}
+
+func line(t *Token) int {
+	n := 1
+	for i := 0; i < len(t.buf)-len(t.end); i++ {
+		if rune(t.buf[i]) == '\n' {
+			n++
+		}
+	}
+	return n
 }
 
 // Atomic unit in the grammer is called "token".
@@ -339,6 +349,7 @@ func decimal(p string) string {
 		t.val = t.val*10 + int(p[0]) - '0'
 		p = p[1:]
 	}
+	t.end = p
 	return p
 }
 
@@ -361,8 +372,9 @@ loop:
 		c := rune(p[0])
 		// New line (preprocessor-only token)
 		if c == '\n' {
-			add_t(int(c), p)
+			t := add_t(int(c), p)
 			p = p[1:]
+			t.end = p
 			continue
 		}
 

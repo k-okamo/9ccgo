@@ -94,11 +94,22 @@ func read_until_eol() *Vector {
 	return v
 }
 
-func new_param(n int) *Token {
+func new_int_p(val int) *Token {
+	t := new(Token)
+	t.ty = TK_NUM
+	t.val = val
+	return t
+}
+
+func new_param(val int) *Token {
 	t := new(Token)
 	t.ty = TK_PARAM
-	t.val = n
+	t.val = val
 	return t
+}
+
+func is_ident(t *Token, s string) bool {
+	return t.ty == TK_IDENT && strcmp(t.name, s) == 0
 }
 
 func replace_params(m *Macro) {
@@ -197,29 +208,36 @@ func stringize(tokens *Vector) *Token {
 	return t
 }
 
-func apply(m *Macro) {
+func apply(m *Macro, start *Token) {
 	if m.ty == OBJLIKE {
 		append_p(m.tokens)
 		return
 	}
 
 	// Function-like macro
-	t := peek()
 	get('(', "comma expected")
 	args := read_args()
 	if m.params.len != args.len {
-		bad_token(t, "number of parameter does not match")
+		bad_token(start, "number of parameter does not match")
 	}
 
 	for i := 0; i < m.tokens.len; i++ {
 		t := m.tokens.data[i].(*Token)
-		if t.ty != TK_PARAM {
-			add_p(t)
-		} else if t.stringize {
-			add_p(stringize(args.data[t.val].(*Vector)))
-		} else {
-			append_p(args.data[t.val].(*Vector))
+
+		if is_ident(t, "__LINE__") {
+			add_p(new_int_p(line(t)))
+			continue
 		}
+
+		if t.ty == TK_PARAM {
+			if t.stringize {
+				add_p(stringize(args.data[t.val].(*Vector)))
+			} else {
+				append_p(args.data[t.val].(*Vector))
+			}
+			continue
+		}
+		add_p(t)
 	}
 }
 
@@ -267,7 +285,7 @@ func preprocess(tokens *Vector) *Vector {
 		if t.ty == TK_IDENT {
 			m := map_get(macros, t.name)
 			if m != nil {
-				apply(m.(*Macro))
+				apply(m.(*Macro), t)
 			} else {
 				add_p(t)
 			}
